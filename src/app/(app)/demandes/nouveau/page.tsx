@@ -124,7 +124,9 @@ export default function NouvelleDemandePageClient() {
               <Label htmlFor="type">Type *</Label>
               <Select value={type} onValueChange={(v) => v && setType(v)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selectionnez un type" />
+                  <SelectValue placeholder="Selectionnez un type">
+                    {type ? REQUEST_TYPES.find((t) => t.value === type)?.label : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {REQUEST_TYPES.map((t) => (

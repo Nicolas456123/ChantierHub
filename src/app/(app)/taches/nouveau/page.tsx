@@ -108,7 +108,9 @@ export default function NouvelleTachePage() {
                 </Label>
                 <Select value={status} onValueChange={(v) => v && setStatus(v)}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {TASK_STATUSES.find((s) => s.value === status)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {TASK_STATUSES.map((s) => (
@@ -126,7 +128,9 @@ export default function NouvelleTachePage() {
                 </Label>
                 <Select value={priority} onValueChange={(v) => v && setPriority(v)}>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {PRIORITIES.find((p) => p.value === priority)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {PRIORITIES.map((p) => (

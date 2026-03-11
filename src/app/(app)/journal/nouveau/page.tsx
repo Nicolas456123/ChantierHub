@@ -129,7 +129,9 @@ export default function NouvelEvenementPage() {
                   disabled={loading}
                 >
                   <SelectTrigger id="category">
-                    <SelectValue placeholder="Sélectionner..." />
+                    <SelectValue placeholder="Sélectionner...">
+                      {category ? EVENT_CATEGORIES.find((c) => c.value === category)?.label : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {EVENT_CATEGORIES.map((cat) => (
@@ -160,7 +162,9 @@ export default function NouvelEvenementPage() {
                   disabled={loading}
                 >
                   <SelectTrigger id="priority">
-                    <SelectValue placeholder="Sélectionner..." />
+                    <SelectValue>
+                      {PRIORITIES.find((p) => p.value === priority)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {PRIORITIES.map((p) => (

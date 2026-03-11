@@ -201,7 +201,9 @@ export default function NouveauDocumentPage() {
               </Label>
               <Select value={category} onValueChange={(v) => v && setCategory(v)}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Sélectionner une catégorie" />
+                  <SelectValue placeholder="Sélectionner une catégorie">
+                    {category ? DOCUMENT_CATEGORIES.find((c) => c.value === category)?.label : undefined}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {DOCUMENT_CATEGORIES.map((cat) => (
