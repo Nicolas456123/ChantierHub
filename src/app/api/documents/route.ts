@@ -90,9 +90,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
-    console.error("Document upload error:", error);
+    const message = error instanceof Error ? error.message : "Erreur inconnue";
+    console.error("Document upload error:", message, error);
     return NextResponse.json(
-      { error: "Erreur lors de l'ajout du document" },
+      { error: `Erreur lors de l'ajout du document: ${message}` },
       { status: 400 }
     );
   }
