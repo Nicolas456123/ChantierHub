@@ -10,6 +10,8 @@ import {
   FileQuestion,
   FolderOpen,
   CheckSquare,
+  Shield,
+  CalendarRange,
   Clock,
   Settings,
   HardHat,
@@ -21,6 +23,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   FileQuestion,
   FolderOpen,
   CheckSquare,
+  Shield,
+  CalendarRange,
   Clock,
   Settings,
 };

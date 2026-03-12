@@ -42,12 +42,32 @@ export const DOCUMENT_CATEGORIES = [
   { value: "autre", label: "Autre" },
 ] as const;
 
+export const CONSTRAINT_TYPES = [
+  { value: "contractuelle", label: "Contractuelle" },
+  { value: "reglementaire", label: "Réglementaire" },
+  { value: "technique", label: "Technique" },
+] as const;
+
+export const CONSTRAINT_STATUSES = [
+  { value: "active", label: "Active", color: "bg-blue-100 text-blue-800" },
+  { value: "respectee", label: "Respectée", color: "bg-green-100 text-green-800" },
+  { value: "violee", label: "Violée", color: "bg-red-100 text-red-800" },
+] as const;
+
+export const PENALTY_UNITS = [
+  { value: "par_jour", label: "Par jour de retard" },
+  { value: "forfaitaire", label: "Forfaitaire" },
+  { value: "par_occurrence", label: "Par occurrence" },
+] as const;
+
 export const NAV_ITEMS = [
   { href: "/", label: "Tableau de bord", icon: "LayoutDashboard" },
   { href: "/journal", label: "Journal", icon: "BookOpen" },
   { href: "/demandes", label: "Demandes", icon: "FileQuestion" },
   { href: "/documents", label: "Documents", icon: "FolderOpen" },
   { href: "/taches", label: "Tâches", icon: "CheckSquare" },
+  { href: "/contraintes", label: "Contraintes", icon: "Shield" },
+  { href: "/planning", label: "Planning", icon: "CalendarRange" },
   { href: "/historique", label: "Historique", icon: "Clock" },
   { href: "/parametres", label: "Paramètres", icon: "Settings" },
 ] as const;

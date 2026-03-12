@@ -56,6 +56,18 @@ export const settingsSchema = z.object({
   address: z.string().optional(),
 });
 
+export const constraintSchema = z.object({
+  title: z.string().min(1, "Le titre est requis").max(200),
+  description: z.string().optional(),
+  type: z.enum(["contractuelle", "reglementaire", "technique"]),
+  status: z.enum(["active", "respectee", "violee"]).default("active"),
+  dueDate: z.string().optional().nullable(),
+  penaltyAmount: z.number().optional().nullable(),
+  penaltyUnit: z.enum(["par_jour", "forfaitaire", "par_occurrence"]).optional().nullable(),
+  penaltyDetails: z.string().optional(),
+  responsible: z.string().optional(),
+});
+
 export const accessCodeSchema = z.object({
   currentCode: z.string().min(1),
   newCode: z.string().min(4, "Le code doit contenir au moins 4 caractères").max(20),
