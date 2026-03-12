@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -34,6 +34,14 @@ import {
   ChevronRight,
   CornerDownRight,
   Download,
+  Eye,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  ClipboardList,
+  BookTemplate,
+  Save,
+  Star,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -90,6 +98,13 @@ interface MeetingReport {
   observations: Observation[];
 }
 
+interface MeetingTemplate {
+  id: string;
+  name: string;
+  content: string;
+  isDefault: boolean;
+}
+
 interface Props {
   report: MeetingReport;
   previousReportNumber: number | null;
@@ -109,6 +124,27 @@ export function MeetingReportEditor({
   const [observations, setObservations] = useState(initialReport.observations);
   const [saving, setSaving] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(initialReport.generalNotes);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [editorKey, setEditorKey] = useState(0);
+
+  // Templates
+  const [templates, setTemplates] = useState<MeetingTemplate[]>([]);
+  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
+  const [newTemplateName, setNewTemplateName] = useState("");
+  const [newTemplateDefault, setNewTemplateDefault] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Load templates on mount
+  useEffect(() => {
+    fetch("/api/meeting-templates")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTemplates(data);
+      })
+      .catch(() => {});
+  }, []);
 
   // Header info editing
   const [editingHeader, setEditingHeader] = useState(false);
@@ -131,6 +167,69 @@ export function MeetingReportEditor({
   const statusInfo = MEETING_REPORT_STATUSES.find(
     (s) => s.value === report.status
   );
+
+  // Observation stats
+  const obsStats = {
+    total: observations.length,
+    en_cours: observations.filter((o) => o.status === "en_cours").length,
+    fait: observations.filter((o) => o.status === "fait").length,
+    retard: observations.filter((o) => o.status === "retard").length,
+    urgent: observations.filter((o) => o.status === "urgent").length,
+  };
+
+  // ─── Template actions ────────────────────────────────────────────
+  function applyTemplate(template: MeetingTemplate) {
+    setGeneralNotes(template.content);
+    setEditorKey((k) => k + 1); // Force TiptapEditor remount
+    setShowTemplateMenu(false);
+    saveGeneralNotes(template.content);
+    toast.success(`Modèle "${template.name}" appliqué`);
+  }
+
+  async function saveAsTemplate() {
+    if (!newTemplateName.trim()) return;
+    setSavingTemplate(true);
+    try {
+      const res = await fetch("/api/meeting-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: newTemplateName.trim(),
+          content: generalNotes,
+          isDefault: newTemplateDefault,
+        }),
+      });
+      if (!res.ok) throw new Error();
+      const created = await res.json();
+      setTemplates((prev) => {
+        const updated = newTemplateDefault
+          ? prev.map((t) => ({ ...t, isDefault: false }))
+          : [...prev];
+        if (newTemplateDefault) {
+          return [created, ...updated];
+        }
+        return [...updated, created];
+      });
+      setNewTemplateName("");
+      setNewTemplateDefault(false);
+      setShowSaveTemplate(false);
+      toast.success("Modèle sauvegardé");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde du modèle");
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  async function deleteTemplate(templateId: string) {
+    try {
+      await fetch(`/api/meeting-templates/${templateId}`, { method: "DELETE" });
+      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
+      toast.success("Modèle supprimé");
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  }
 
   // ─── Save header ─────────────────────────────────────────────────
   async function saveHeader() {
@@ -218,7 +317,7 @@ export function MeetingReportEditor({
     );
   }
 
-  function saveRepresentant(companyId: string) {
+  function saveRepresentant() {
     saveAttendances(attendances);
   }
 
@@ -273,6 +372,12 @@ export function MeetingReportEditor({
     }
   }
 
+  // ─── Preview PDF ──────────────────────────────────────────────────
+  function openPreview() {
+    setPreviewLoading(true);
+    setShowPreview(true);
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -284,7 +389,11 @@ export function MeetingReportEditor({
           year: "numeric",
         })}
         action={
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={openPreview}>
+              <Eye className="h-4 w-4 mr-1" />
+              Aperçu PDF
+            </Button>
             <Button
               size="sm"
               variant="outline"
@@ -296,12 +405,11 @@ export function MeetingReportEditor({
               }}
             >
               <Download className="h-4 w-4 mr-1" />
-              PDF
+              Télécharger
             </Button>
             {report.status === "brouillon" && (
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => changeStatus("valide")}
                 disabled={saving}
               >
@@ -311,7 +419,6 @@ export function MeetingReportEditor({
             {report.status === "valide" && (
               <Button
                 size="sm"
-                variant="outline"
                 onClick={() => changeStatus("diffuse")}
                 disabled={saving}
               >
@@ -327,6 +434,61 @@ export function MeetingReportEditor({
           </div>
         }
       />
+
+      {/* PDF Preview Modal */}
+      {showPreview && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b">
+              <h3 className="font-semibold flex items-center gap-2">
+                <Eye className="h-4 w-4" />
+                Aperçu — CR n°{report.number}
+              </h3>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    window.open(
+                      `/api/meeting-reports/${report.id}/pdf`,
+                      "_blank"
+                    );
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Télécharger
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => setShowPreview(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="flex-1 relative">
+              {previewLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
+                  <div className="text-center">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Génération du PDF...
+                    </p>
+                  </div>
+                </div>
+              )}
+              <iframe
+                src={`/api/meeting-reports/${report.id}/pdf`}
+                className="w-full h-full rounded-b-lg"
+                onLoad={() => setPreviewLoading(false)}
+                title="Aperçu PDF"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content: 2 columns */}
@@ -452,7 +614,8 @@ export function MeetingReportEditor({
                         {new Date(report.nextMeetingDate).toLocaleDateString(
                           "fr-FR"
                         )}
-                        {report.nextMeetingTime && ` à ${report.nextMeetingTime}`}
+                        {report.nextMeetingTime &&
+                          ` à ${report.nextMeetingTime}`}
                       </span>
                     </div>
                   )}
@@ -464,13 +627,160 @@ export function MeetingReportEditor({
           {/* General notes */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-base flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Généralités
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <FileText className="h-4 w-4" />
+                  Généralités
+                </CardTitle>
+                <div className="flex items-center gap-1 relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setShowTemplateMenu(!showTemplateMenu);
+                      setShowSaveTemplate(false);
+                    }}
+                  >
+                    <BookTemplate className="h-3.5 w-3.5 mr-1" />
+                    Modèles
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs"
+                    onClick={() => {
+                      setShowSaveTemplate(!showSaveTemplate);
+                      setShowTemplateMenu(false);
+                    }}
+                  >
+                    <Save className="h-3.5 w-3.5 mr-1" />
+                    Sauvegarder
+                  </Button>
+
+                  {/* Template selector dropdown */}
+                  {showTemplateMenu && (
+                    <div className="absolute top-full right-0 mt-1 bg-background border rounded-lg shadow-lg z-20 w-72">
+                      <div className="p-2 border-b">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          Appliquer un modèle
+                        </p>
+                      </div>
+                      {templates.length === 0 ? (
+                        <div className="p-4 text-center">
+                          <p className="text-sm text-muted-foreground">
+                            Aucun modèle enregistré
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Rédigez vos généralités puis cliquez
+                            &quot;Sauvegarder&quot; pour créer un modèle
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="max-h-60 overflow-y-auto">
+                          {templates.map((tpl) => (
+                            <div
+                              key={tpl.id}
+                              className="flex items-center gap-2 px-3 py-2 hover:bg-accent group"
+                            >
+                              <button
+                                className="flex-1 text-left text-sm truncate"
+                                onClick={() => applyTemplate(tpl)}
+                              >
+                                {tpl.isDefault && (
+                                  <Star className="h-3 w-3 inline mr-1 text-yellow-500 fill-yellow-500" />
+                                )}
+                                {tpl.name}
+                              </button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  deleteTemplate(tpl.id);
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div className="p-2 border-t">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full h-7 text-xs"
+                          onClick={() => {
+                            setShowTemplateMenu(false);
+                          }}
+                        >
+                          Fermer
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Save as template dialog */}
+                  {showSaveTemplate && (
+                    <div className="absolute top-full right-0 mt-1 bg-background border rounded-lg shadow-lg z-20 w-72 p-3">
+                      <p className="text-xs font-medium text-muted-foreground mb-2">
+                        Sauvegarder comme modèle
+                      </p>
+                      <Input
+                        value={newTemplateName}
+                        onChange={(e) => setNewTemplateName(e.target.value)}
+                        placeholder="Nom du modèle"
+                        className="h-8 text-sm mb-2"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") saveAsTemplate();
+                        }}
+                      />
+                      <label className="flex items-center gap-2 text-xs text-muted-foreground mb-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={newTemplateDefault}
+                          onChange={(e) =>
+                            setNewTemplateDefault(e.target.checked)
+                          }
+                          className="rounded"
+                        />
+                        Modèle par défaut pour les nouveaux CR
+                      </label>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="h-7 flex-1"
+                          onClick={saveAsTemplate}
+                          disabled={
+                            savingTemplate || !newTemplateName.trim()
+                          }
+                        >
+                          {savingTemplate ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            "Enregistrer"
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7"
+                          onClick={() => setShowSaveTemplate(false)}
+                        >
+                          Annuler
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <TiptapEditor
+                key={editorKey}
                 content={generalNotes}
                 onChange={saveGeneralNotes}
                 placeholder="Notes générales sur l'avancement du chantier, points importants à signaler..."
@@ -500,7 +810,7 @@ export function MeetingReportEditor({
           ))}
 
           {/* Observations without a company (general) */}
-          <ObservationsWithoutCompany
+          <GeneralObservationsSection
             observations={observations.filter((o) => !o.companyId)}
             reportId={report.id}
             previousReportNumber={previousReportNumber}
@@ -521,7 +831,8 @@ export function MeetingReportEditor({
                 <Users className="h-4 w-4" />
                 Présences
                 <span className="text-xs font-normal text-muted-foreground">
-                  ({attendances.filter((a) => a.status === "present").length}/
+                  (
+                  {attendances.filter((a) => a.status === "present").length}/
                   {attendances.length})
                 </span>
               </CardTitle>
@@ -571,7 +882,7 @@ export function MeetingReportEditor({
                           onChange={(e) =>
                             updateRepresentant(att.companyId, e.target.value)
                           }
-                          onBlur={() => saveRepresentant(att.companyId)}
+                          onBlur={() => saveRepresentant()}
                           className="h-7 text-xs"
                         />
                       )}
@@ -582,9 +893,111 @@ export function MeetingReportEditor({
             </CardContent>
           </Card>
 
+          {/* Observations summary */}
+          {obsStats.total > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  Observations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Total</span>
+                    <span className="font-medium">{obsStats.total}</span>
+                  </div>
+                  {obsStats.en_cours > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-blue-600">
+                        <span className="h-2 w-2 rounded-full bg-blue-500" />
+                        En cours
+                      </span>
+                      <span className="font-medium">{obsStats.en_cours}</span>
+                    </div>
+                  )}
+                  {obsStats.fait > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-green-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Fait
+                      </span>
+                      <span className="font-medium">{obsStats.fait}</span>
+                    </div>
+                  )}
+                  {obsStats.retard > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-red-600">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        En retard
+                      </span>
+                      <span className="font-medium">{obsStats.retard}</span>
+                    </div>
+                  )}
+                  {obsStats.urgent > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-1.5 text-orange-600">
+                        <AlertCircle className="h-3.5 w-3.5" />
+                        Urgent
+                      </span>
+                      <span className="font-medium">{obsStats.urgent}</span>
+                    </div>
+                  )}
+                  {/* Progress bar */}
+                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex mt-1">
+                    {obsStats.fait > 0 && (
+                      <div
+                        className="bg-green-500 h-full"
+                        style={{
+                          width: `${(obsStats.fait / obsStats.total) * 100}%`,
+                        }}
+                      />
+                    )}
+                    {obsStats.en_cours > 0 && (
+                      <div
+                        className="bg-blue-500 h-full"
+                        style={{
+                          width: `${(obsStats.en_cours / obsStats.total) * 100}%`,
+                        }}
+                      />
+                    )}
+                    {obsStats.retard > 0 && (
+                      <div
+                        className="bg-red-500 h-full"
+                        style={{
+                          width: `${(obsStats.retard / obsStats.total) * 100}%`,
+                        }}
+                      />
+                    )}
+                    {obsStats.urgent > 0 && (
+                      <div
+                        className="bg-orange-500 h-full"
+                        style={{
+                          width: `${(obsStats.urgent / obsStats.total) * 100}%`,
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Actions */}
           <Card>
             <CardContent className="p-4 space-y-2">
+              {report.status !== "brouillon" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => changeStatus("brouillon")}
+                  disabled={saving}
+                >
+                  Repasser en brouillon
+                </Button>
+              )}
               <Button
                 variant="destructive"
                 size="sm"
@@ -624,6 +1037,7 @@ function SectionEditor({
   const openObs = observations.filter((o) =>
     ["en_cours", "retard", "urgent"].includes(o.status)
   ).length;
+  const doneObs = observations.filter((o) => o.status === "fait").length;
 
   const handleSectionContentChange = useCallback(
     (json: string) => {
@@ -645,11 +1059,21 @@ function SectionEditor({
             <ChevronRight className="h-4 w-4" />
           )}
           <CardTitle className="text-base flex-1">{section.title}</CardTitle>
-          {openObs > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {openObs} obs. en cours
-            </Badge>
-          )}
+          <div className="flex items-center gap-1.5">
+            {doneObs > 0 && (
+              <Badge
+                variant="secondary"
+                className="text-[10px] bg-green-100 text-green-700"
+              >
+                {doneObs} fait{doneObs > 1 ? "s" : ""}
+              </Badge>
+            )}
+            {openObs > 0 && (
+              <Badge variant="secondary" className="text-[10px]">
+                {openObs} en cours
+              </Badge>
+            )}
+          </div>
         </button>
       </CardHeader>
       {expanded && (
@@ -675,8 +1099,8 @@ function SectionEditor({
   );
 }
 
-// ─── Observations without company ───────────────────────────────────
-function ObservationsWithoutCompany({
+// ─── General Observations Section ───────────────────────────────────
+function GeneralObservationsSection({
   observations,
   reportId,
   previousReportNumber,
@@ -689,12 +1113,18 @@ function ObservationsWithoutCompany({
   companies: Company[];
   onObservationsChange: React.Dispatch<React.SetStateAction<Observation[]>>;
 }) {
-  if (observations.length === 0) return null;
-
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base">Observations générales</CardTitle>
+        <CardTitle className="text-base flex items-center gap-2">
+          <ClipboardList className="h-4 w-4" />
+          Observations générales
+          {observations.length > 0 && (
+            <span className="text-xs font-normal text-muted-foreground">
+              ({observations.length})
+            </span>
+          )}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <ObservationsList
@@ -833,19 +1263,27 @@ function ObservationsList({
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           Observations ({observations.length})
         </span>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-7 text-xs"
-          onClick={() => setAdding(true)}
-        >
-          <Plus className="h-3 w-3 mr-1" />
-          Ajouter
-        </Button>
+        {!adding && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-7 text-xs"
+            onClick={() => setAdding(true)}
+          >
+            <Plus className="h-3 w-3 mr-1" />
+            Ajouter
+          </Button>
+        )}
       </div>
 
+      {observations.length === 0 && !adding && (
+        <p className="text-xs text-muted-foreground text-center py-3">
+          Aucune observation
+        </p>
+      )}
+
       {observations.map((obs) => {
-        const statusInfo = OBSERVATION_STATUSES.find(
+        const obsStatusInfo = OBSERVATION_STATUSES.find(
           (s) => s.value === obs.status
         );
         const isCarriedOver = !!obs.sourceObservationId;
@@ -873,12 +1311,12 @@ function ObservationsList({
                       CR n°{previousReportNumber}
                     </Badge>
                   )}
-                  {statusInfo && (
+                  {obsStatusInfo && (
                     <Badge
                       variant="secondary"
-                      className={`text-[10px] ${statusInfo.color}`}
+                      className={`text-[10px] ${obsStatusInfo.color}`}
                     >
-                      {statusInfo.label}
+                      {obsStatusInfo.label}
                     </Badge>
                   )}
                   {obs.category && (
@@ -896,7 +1334,14 @@ function ObservationsList({
                 </p>
                 <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
                   {obs.dueDate && (
-                    <span>
+                    <span
+                      className={
+                        new Date(obs.dueDate) < new Date() &&
+                        obs.status !== "fait"
+                          ? "text-red-600 font-medium"
+                          : ""
+                      }
+                    >
                       Pour le{" "}
                       {new Date(obs.dueDate).toLocaleDateString("fr-FR")}
                     </span>
@@ -947,8 +1392,8 @@ function ObservationsList({
             className="resize-none"
             autoFocus
           />
-          <div className="flex gap-2 items-end">
-            <div className="flex-1">
+          <div className="flex gap-2 items-end flex-wrap">
+            <div className="flex-1 min-w-[120px]">
               <Label className="text-xs mb-1 block">Pour le</Label>
               <Input
                 type="date"
@@ -957,7 +1402,7 @@ function ObservationsList({
                 className="h-7 text-xs"
               />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-[120px]">
               <Label className="text-xs mb-1 block">Catégorie</Label>
               <select
                 value={newCategory}

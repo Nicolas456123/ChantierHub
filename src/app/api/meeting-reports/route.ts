@@ -47,6 +47,17 @@ export async function POST(request: NextRequest) {
 
     const newNumber = (lastReport?.number ?? 0) + 1;
 
+    // Check for default template to pre-fill generalNotes
+    let defaultGeneralNotes = parsed.generalNotes ?? "{}";
+    if (defaultGeneralNotes === "{}") {
+      const defaultTemplate = await prisma.meetingTemplate.findFirst({
+        where: { projectId, isDefault: true },
+      });
+      if (defaultTemplate) {
+        defaultGeneralNotes = defaultTemplate.content;
+      }
+    }
+
     // Create the meeting report
     const report = await prisma.meetingReport.create({
       data: {
@@ -58,7 +69,7 @@ export async function POST(request: NextRequest) {
           : null,
         nextMeetingTime: parsed.nextMeetingTime ?? null,
         weather: parsed.weather ?? null,
-        generalNotes: parsed.generalNotes ?? "{}",
+        generalNotes: defaultGeneralNotes,
         status: parsed.status ?? "brouillon",
         author,
         previousId: lastReport?.id ?? null,

@@ -45,8 +45,9 @@ model Project {
   tasks        Task[]
   activities   Activity[]
   constraints    Constraint[]
-  companies      Company[]
-  meetingReports MeetingReport[]
+  companies        Company[]
+  meetingReports   MeetingReport[]
+  meetingTemplates MeetingTemplate[]
 }
 
 model UserProject {
@@ -223,6 +224,19 @@ model Company {
 
   @@index([projectId])
   @@index([projectId, sortOrder])
+}
+
+model MeetingTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  content   String   @default("{}")
+  isDefault Boolean  @default(false)
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([projectId])
 }
 
 model MeetingReport {
