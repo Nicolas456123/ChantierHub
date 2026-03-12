@@ -160,8 +160,10 @@ export async function POST(request: NextRequest) {
     if (error instanceof Error && error.message === "Non authentifié") {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
+    console.error("Meeting report creation error:", error);
+    const message = error instanceof Error ? error.message : "Erreur inconnue";
     return NextResponse.json(
-      { error: "Erreur lors de la création du compte-rendu" },
+      { error: `Erreur lors de la création du compte-rendu: ${message}` },
       { status: 400 }
     );
   }
