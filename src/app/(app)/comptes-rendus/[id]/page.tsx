@@ -46,11 +46,26 @@ export default async function CompteRenduDetailPage({ params }: PageProps) {
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
+  // Get project name and PDF settings
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { name: true, pdfSettings: true },
+  });
+
+  let pdfSettings = {};
+  try {
+    pdfSettings = JSON.parse(project?.pdfSettings ?? "{}");
+  } catch {
+    pdfSettings = {};
+  }
+
   return (
     <MeetingReportEditor
       report={JSON.parse(JSON.stringify(report))}
       previousReportNumber={previousReport?.number ?? null}
       companies={JSON.parse(JSON.stringify(companies))}
+      projectName={project?.name ?? "Projet"}
+      pdfSettings={pdfSettings}
     />
   );
 }

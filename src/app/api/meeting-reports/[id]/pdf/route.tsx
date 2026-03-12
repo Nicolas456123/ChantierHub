@@ -36,11 +36,18 @@ export async function GET(
       );
     }
 
-    // Get project name
+    // Get project name and PDF settings
     const project = await prisma.project.findUnique({
       where: { id: projectId },
-      select: { name: true },
+      select: { name: true, pdfSettings: true },
     });
+
+    let pdfSettings = {};
+    try {
+      pdfSettings = JSON.parse(project?.pdfSettings ?? "{}");
+    } catch {
+      pdfSettings = {};
+    }
 
     // Get previous report number
     const previousReport = report.previousId
@@ -58,6 +65,7 @@ export async function GET(
         report={serialized}
         projectName={project?.name ?? "Projet"}
         previousReportNumber={previousReport?.number ?? null}
+        pdfSettings={pdfSettings}
       />
     );
 

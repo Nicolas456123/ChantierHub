@@ -36,6 +36,7 @@ model Project {
   startDate    DateTime?
   endDate      DateTime?
   address      String?
+  pdfSettings  String        @default("{}")
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
   userProjects UserProject[]

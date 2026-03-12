@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import {
   Settings,
   Building2,
+  FileText,
   Plus,
   Pencil,
   Trash2,
@@ -22,6 +23,9 @@ import {
   Phone,
   Mail,
   X,
+  Upload,
+  Image,
+  Palette,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -50,10 +54,21 @@ interface Company {
   sortOrder: number;
 }
 
+interface PdfSettings {
+  logoUrl?: string;
+  companyName?: string;
+  headerColor?: string;
+  showCoverPage?: boolean;
+  coverTitle?: string;
+  coverSubtitle?: string;
+  footerText?: string;
+}
+
 // ─── Tabs ───────────────────────────────────────────────────────────
 const TABS = [
   { id: "projet", label: "Projet", icon: Settings },
   { id: "annuaire", label: "Annuaire entreprises", icon: Building2 },
+  { id: "pdf", label: "Mise en page PDF", icon: FileText },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
@@ -91,6 +106,7 @@ export default function ParametresPage() {
 
       {activeTab === "projet" && <ProjectSettingsTab />}
       {activeTab === "annuaire" && <CompanyDirectoryTab />}
+      {activeTab === "pdf" && <PdfSettingsTab />}
     </div>
   );
 }
@@ -332,6 +348,265 @@ function ProjectSettingsTab() {
           </form>
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+// ─── PDF Settings Tab ────────────────────────────────────────────────
+function PdfSettingsTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState<PdfSettings>({});
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch("/api/settings/pdf");
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setSettings(data);
+      } catch {
+        toast.error("Impossible de charger les paramètres PDF");
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const res = await fetch("/api/settings/pdf", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+      if (!res.ok) throw new Error();
+      toast.success("Paramètres PDF sauvegardés");
+    } catch {
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 500_000) {
+      toast.error("Le logo doit faire moins de 500 Ko");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSettings((prev) => ({ ...prev, logoUrl: reader.result as string }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-6 space-y-4">
+          <Skeleton className="h-8 w-1/3" />
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-10 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Logo */}
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Image className="h-5 w-5" />
+            Logo
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Le logo apparaîtra en haut du compte-rendu PDF et sur la page de couverture.
+          </p>
+          <div className="flex items-center gap-4">
+            {settings.logoUrl ? (
+              <div className="relative group">
+                <img
+                  src={settings.logoUrl}
+                  alt="Logo"
+                  className="h-20 max-w-[200px] object-contain border rounded p-2"
+                />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() =>
+                    setSettings((prev) => {
+                      const next = { ...prev };
+                      delete next.logoUrl;
+                      return next;
+                    })
+                  }
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center w-48 h-24 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                <span className="text-xs text-muted-foreground">
+                  Charger un logo
+                </span>
+                <span className="text-[10px] text-muted-foreground/60">
+                  PNG, JPG — max 500 Ko
+                </span>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                />
+              </label>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* En-tête et couleurs */}
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Palette className="h-5 w-5" />
+            En-tête et couleurs
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <Label className="mb-1.5 block text-sm">
+                Nom de l&apos;entreprise / Maîtrise d&apos;œuvre
+              </Label>
+              <Input
+                value={settings.companyName ?? ""}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, companyName: e.target.value }))
+                }
+                placeholder="Ex: Cabinet d'architecture XYZ"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Affiché sur la page de couverture
+              </p>
+            </div>
+            <div>
+              <Label className="mb-1.5 block text-sm">
+                Couleur de l&apos;en-tête
+              </Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
+                  value={settings.headerColor ?? "#1e3a5f"}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, headerColor: e.target.value }))
+                  }
+                  className="h-10 w-14 rounded border cursor-pointer"
+                />
+                <Input
+                  value={settings.headerColor ?? "#1e3a5f"}
+                  onChange={(e) =>
+                    setSettings((prev) => ({ ...prev, headerColor: e.target.value }))
+                  }
+                  className="w-32"
+                  placeholder="#1e3a5f"
+                />
+                <div
+                  className="h-10 flex-1 rounded border flex items-center px-3 font-bold"
+                  style={{ color: settings.headerColor ?? "#1e3a5f" }}
+                >
+                  Aperçu du titre
+                </div>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1.5 block text-sm">Texte de pied de page</Label>
+              <Input
+                value={settings.footerText ?? ""}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, footerText: e.target.value }))
+                }
+                placeholder="Par défaut: CR n°X — Nom du projet"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Page de couverture */}
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Page de couverture
+          </h2>
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={settings.showCoverPage ?? false}
+                onChange={(e) =>
+                  setSettings((prev) => ({
+                    ...prev,
+                    showCoverPage: e.target.checked,
+                  }))
+                }
+                className="rounded"
+              />
+              <span className="text-sm">
+                Afficher une page de couverture avant le contenu
+              </span>
+            </label>
+
+            {settings.showCoverPage && (
+              <div className="space-y-3 pl-7">
+                <div>
+                  <Label className="mb-1.5 block text-sm">
+                    Titre de la couverture
+                  </Label>
+                  <Input
+                    value={settings.coverTitle ?? ""}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        coverTitle: e.target.value,
+                      }))
+                    }
+                    placeholder="Compte-rendu de réunion de chantier"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-sm">Sous-titre</Label>
+                  <Input
+                    value={settings.coverSubtitle ?? ""}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        coverSubtitle: e.target.value,
+                      }))
+                    }
+                    placeholder="Ex: Phase DCE — Suivi hebdomadaire"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Save */}
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving}>
+          {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+          Sauvegarder les paramètres PDF
+        </Button>
+      </div>
     </div>
   );
 }

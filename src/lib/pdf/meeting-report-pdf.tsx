@@ -1,5 +1,5 @@
 import React from "react";
-import { Document, Page, Text, View } from "@react-pdf/renderer";
+import { Document, Page, Text, View, Image } from "@react-pdf/renderer";
 import { styles } from "./styles";
 import { renderTiptapContent } from "./tiptap-to-pdf";
 
@@ -49,10 +49,21 @@ interface MeetingReportData {
   observations: Observation[];
 }
 
+interface PdfSettings {
+  logoUrl?: string;
+  companyName?: string;
+  headerColor?: string;
+  showCoverPage?: boolean;
+  coverTitle?: string;
+  coverSubtitle?: string;
+  footerText?: string;
+}
+
 interface Props {
   report: MeetingReportData;
   projectName: string;
   previousReportNumber: number | null;
+  pdfSettings?: PdfSettings;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -95,18 +106,65 @@ export function MeetingReportPDF({
   report,
   projectName,
   previousReportNumber,
+  pdfSettings,
 }: Props) {
   const today = new Date().toLocaleDateString("fr-FR");
+  const headerColor = pdfSettings?.headerColor || "#1e3a5f";
+  const footerText = pdfSettings?.footerText || `CR n°${report.number} — ${projectName}`;
 
   return (
     <Document>
+      {/* Cover Page */}
+      {pdfSettings?.showCoverPage && (
+        <Page size="A4" style={[styles.page, { justifyContent: "center", alignItems: "center" }]}>
+          {pdfSettings.logoUrl && (
+            <Image
+              src={pdfSettings.logoUrl}
+              style={{ maxHeight: 100, maxWidth: 250, marginBottom: 40, objectFit: "contain" }}
+            />
+          )}
+          <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: headerColor, textAlign: "center", marginBottom: 10 }}>
+            {pdfSettings.coverTitle || "Compte-rendu de réunion de chantier"}
+          </Text>
+          {pdfSettings.coverSubtitle && (
+            <Text style={{ fontSize: 14, color: "#666", textAlign: "center", marginBottom: 20 }}>
+              {pdfSettings.coverSubtitle}
+            </Text>
+          )}
+          <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: headerColor, marginBottom: 6 }}>
+            {projectName}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
+            CR n°{report.number}
+          </Text>
+          <Text style={{ fontSize: 12, color: "#666" }}>
+            {formatDate(report.date)}
+          </Text>
+          {pdfSettings.companyName && (
+            <Text style={{ fontSize: 10, color: "#999", marginTop: 40 }}>
+              {pdfSettings.companyName}
+            </Text>
+          )}
+        </Page>
+      )}
+
       <Page size="A4" style={styles.page}>
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>
-            Compte-rendu de réunion n°{report.number}
-          </Text>
-          <Text style={styles.headerSubtitle}>{projectName}</Text>
+        <View style={[styles.header, { borderBottomColor: headerColor }]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            {pdfSettings?.logoUrl && !pdfSettings.showCoverPage && (
+              <Image
+                src={pdfSettings.logoUrl}
+                style={{ maxHeight: 40, maxWidth: 100, objectFit: "contain" }}
+              />
+            )}
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.headerTitle, { color: headerColor }]}>
+                Compte-rendu de réunion n°{report.number}
+              </Text>
+              <Text style={styles.headerSubtitle}>{projectName}</Text>
+            </View>
+          </View>
           <View style={styles.headerInfo}>
             <Text style={styles.headerInfoItem}>
               Date : {formatDate(report.date)}
@@ -304,9 +362,7 @@ export function MeetingReportPDF({
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>
-            CR n°{report.number} — {projectName}
-          </Text>
+          <Text>{footerText}</Text>
           <Text>Édité le {today}</Text>
           <Text
             render={({ pageNumber, totalPages }) =>

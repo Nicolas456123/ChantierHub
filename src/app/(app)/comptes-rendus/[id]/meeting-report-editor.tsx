@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TiptapEditor } from "@/components/tiptap-editor";
 import { CommentsSection } from "@/components/comments-section";
+import { MeetingReportPreview } from "@/components/meeting-report-preview";
 import {
   MEETING_REPORT_STATUSES,
   ATTENDANCE_STATUSES,
@@ -105,10 +106,22 @@ interface MeetingTemplate {
   isDefault: boolean;
 }
 
+interface PdfSettings {
+  logoUrl?: string;
+  companyName?: string;
+  headerColor?: string;
+  showCoverPage?: boolean;
+  coverTitle?: string;
+  coverSubtitle?: string;
+  footerText?: string;
+}
+
 interface Props {
   report: MeetingReport;
   previousReportNumber: number | null;
   companies: Company[];
+  projectName: string;
+  pdfSettings: PdfSettings;
 }
 
 // ─── Main Editor ────────────────────────────────────────────────────
@@ -116,6 +129,8 @@ export function MeetingReportEditor({
   report: initialReport,
   previousReportNumber,
   companies,
+  projectName,
+  pdfSettings,
 }: Props) {
   const router = useRouter();
   const [report, setReport] = useState(initialReport);
@@ -125,7 +140,6 @@ export function MeetingReportEditor({
   const [saving, setSaving] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(initialReport.generalNotes);
   const [showPreview, setShowPreview] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
 
   // Templates
@@ -372,9 +386,8 @@ export function MeetingReportEditor({
     }
   }
 
-  // ─── Preview PDF ──────────────────────────────────────────────────
+  // ─── Preview ───────────────────────────────────────────────────────
   function openPreview() {
-    setPreviewLoading(true);
     setShowPreview(true);
   }
 
@@ -392,7 +405,7 @@ export function MeetingReportEditor({
           <div className="flex items-center gap-2 flex-wrap">
             <Button size="sm" variant="outline" onClick={openPreview}>
               <Eye className="h-4 w-4 mr-1" />
-              Aperçu PDF
+              Aperçu
             </Button>
             <Button
               size="sm"
@@ -435,11 +448,11 @@ export function MeetingReportEditor({
         }
       />
 
-      {/* PDF Preview Modal */}
+      {/* HTML Preview Modal */}
       {showPreview && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-background rounded-lg shadow-2xl w-full max-w-4xl h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b bg-background rounded-t-lg">
               <h3 className="font-semibold flex items-center gap-2">
                 <Eye className="h-4 w-4" />
                 Aperçu — CR n°{report.number}
@@ -456,7 +469,7 @@ export function MeetingReportEditor({
                   }}
                 >
                   <Download className="h-4 w-4 mr-1" />
-                  Télécharger
+                  Exporter PDF
                 </Button>
                 <Button
                   size="icon"
@@ -468,23 +481,21 @@ export function MeetingReportEditor({
                 </Button>
               </div>
             </div>
-            <div className="flex-1 relative">
-              {previewLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background z-10">
-                  <div className="text-center">
-                    <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mt-2">
-                      Génération du PDF...
-                    </p>
-                  </div>
-                </div>
-              )}
-              <iframe
-                src={`/api/meeting-reports/${report.id}/pdf`}
-                className="w-full h-full rounded-b-lg"
-                onLoad={() => setPreviewLoading(false)}
-                title="Aperçu PDF"
-              />
+            <div className="flex-1 overflow-auto bg-gray-200 p-6">
+              <div className="mx-auto shadow-xl" style={{ maxWidth: "210mm" }}>
+                <MeetingReportPreview
+                  report={{
+                    ...report,
+                    generalNotes: generalNotes,
+                    attendances,
+                    sections: sections,
+                    observations,
+                  }}
+                  projectName={projectName}
+                  previousReportNumber={previousReportNumber}
+                  pdfSettings={pdfSettings}
+                />
+              </div>
             </div>
           </div>
         </div>
