@@ -51,7 +51,7 @@ export default async function JournalPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {events.map((event) => {
             const category = EVENT_CATEGORIES.find(
               (c) => c.value === event.category

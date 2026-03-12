@@ -122,8 +122,8 @@ export default function HistoriquePage() {
       </div>
 
       {loading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid gap-3 md:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
@@ -149,7 +149,7 @@ export default function HistoriquePage() {
         </Card>
       ) : (
         <>
-          <div className="space-y-2">
+          <div className="grid gap-2 md:grid-cols-2">
             {data.activities.map((activity) => {
               const dotColor =
                 TYPE_COLORS[activity.type] ?? "bg-gray-400";

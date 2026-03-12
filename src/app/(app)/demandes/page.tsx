@@ -105,7 +105,7 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-4 md:grid-cols-2">
           {requests.map((req) => {
             const statusInfo = REQUEST_STATUSES.find(
               (s) => s.value === req.status
