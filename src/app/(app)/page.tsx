@@ -84,7 +84,7 @@ export default async function DashboardPage() {
     },
     orderBy: { dueDate: "asc" },
     take: 5,
-    select: { id: true, title: true, dueDate: true, penaltyAmount: true, penaltyUnit: true },
+    select: { id: true, title: true, dueDate: true },
   });
 
   // Merge and sort deadlines
@@ -113,7 +113,7 @@ export default async function DashboardPage() {
       dueDate: c.dueDate!,
       type: "constraint" as const,
       isOverdue: c.dueDate! < now,
-      detail: c.penaltyAmount ? `${c.penaltyAmount}€` : undefined,
+      detail: undefined,
     })),
   ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime()).slice(0, 6);
 
@@ -175,17 +175,16 @@ export default async function DashboardPage() {
 
       {/* Alerts: Violated Constraints */}
       {violatedConstraints > 0 && (
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-orange-200 bg-orange-50">
           <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+            <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-red-800">
-                {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} non respectée{violatedConstraints > 1 ? "s" : ""}
+              <p className="text-sm font-medium text-orange-800">
+                {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} nécessite{violatedConstraints > 1 ? "nt" : ""} votre attention
               </p>
-              <p className="text-xs text-red-600">Des pénalités financières peuvent s&apos;appliquer</p>
             </div>
             <Link href="/contraintes">
-              <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
+              <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
                 Voir les contraintes
               </Button>
             </Link>
@@ -271,9 +270,6 @@ export default async function DashboardPage() {
                         <p className="text-sm font-medium truncate">{constraint.title}</p>
                         <p className="text-xs text-muted-foreground">
                           {constraint.responsible || constraint.author}
-                          {constraint.penaltyAmount ? (
-                            <span className="text-orange-600 font-medium"> · {constraint.penaltyAmount}€</span>
-                          ) : null}
                         </p>
                       </div>
                       {statusInfo && (
