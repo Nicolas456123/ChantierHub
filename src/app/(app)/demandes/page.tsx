@@ -14,6 +14,8 @@ import {
   FileQuestion,
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_TABS = [
   { value: "all", label: "Toutes" },
   ...REQUEST_STATUSES.map((s) => ({ value: s.value, label: s.label })),

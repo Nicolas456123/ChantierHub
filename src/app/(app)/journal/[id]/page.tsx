@@ -11,6 +11,8 @@ import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { DeleteEventButton } from "./delete-button";
 
+export const dynamic = "force-dynamic";
+
 interface EventPageProps {
   params: Promise<{ id: string }>;
 }

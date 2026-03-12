@@ -8,6 +8,8 @@ import { formatDate } from "@/lib/format";
 import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { Plus, BookOpen } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function JournalPage() {
   const events = await prisma.event.findMany({
     orderBy: { date: "desc" },

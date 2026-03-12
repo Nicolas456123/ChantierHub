@@ -8,6 +8,8 @@ import { formatDate } from "@/lib/format";
 import { TASK_STATUSES, PRIORITIES } from "@/lib/constants";
 import { Plus, CheckSquare } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function TachesPage() {
   const tasks = await prisma.task.findMany({
     orderBy: { createdAt: "desc" },

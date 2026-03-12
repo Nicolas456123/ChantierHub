@@ -9,6 +9,8 @@ import { TASK_STATUSES, PRIORITIES } from "@/lib/constants";
 import { TaskStatusChanger } from "./task-status-changer";
 import { DeleteTaskButton } from "./delete-task-button";
 
+export const dynamic = "force-dynamic";
+
 interface TaskDetailPageProps {
   params: Promise<{ id: string }>;
 }

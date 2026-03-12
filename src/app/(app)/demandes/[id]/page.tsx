@@ -12,6 +12,8 @@ import { StatusChanger } from "./status-changer";
 import { CommentSection } from "./comment-section";
 import { DeleteRequest } from "./delete-request";
 
+export const dynamic = "force-dynamic";
+
 interface DemandeDetailPageProps {
   params: Promise<{ id: string }>;
 }
