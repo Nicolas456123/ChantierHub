@@ -28,13 +28,64 @@ function isExcel(mimeType: string) {
   );
 }
 
+/**
+ * Hook to disable iOS Safari native pinch-to-zoom when fullscreen is open.
+ * Modifies the viewport meta tag and adds a global touchmove listener.
+ */
+function useDisableNativeZoom(active: boolean) {
+  useEffect(() => {
+    if (!active) return;
+
+    // 1. Modify viewport meta to prevent native zoom
+    const viewport = document.querySelector('meta[name="viewport"]');
+    const originalContent = viewport?.getAttribute("content") || "";
+    if (viewport) {
+      viewport.setAttribute(
+        "content",
+        "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+      );
+    }
+
+    // 2. Prevent multi-touch zoom at document level
+    function preventZoom(e: TouchEvent) {
+      if (e.touches.length > 1) {
+        e.preventDefault();
+      }
+    }
+    document.addEventListener("touchmove", preventZoom, { passive: false });
+
+    // 3. Prevent gesture events (Safari specific)
+    function preventGesture(e: Event) {
+      e.preventDefault();
+    }
+    document.addEventListener("gesturestart", preventGesture);
+    document.addEventListener("gesturechange", preventGesture);
+    document.addEventListener("gestureend", preventGesture);
+
+    return () => {
+      // Restore original viewport
+      if (viewport) {
+        viewport.setAttribute("content", originalContent);
+      }
+      document.removeEventListener("touchmove", preventZoom);
+      document.removeEventListener("gesturestart", preventGesture);
+      document.removeEventListener("gesturechange", preventGesture);
+      document.removeEventListener("gestureend", preventGesture);
+    };
+  }, [active]);
+}
+
+/**
+ * Wraps content with pinch-to-zoom + pan support in fullscreen mode.
+ * Used for images and other non-iframe content.
+ */
 function ZoomableContainer({ children, fullscreen }: { children: React.ReactNode; fullscreen?: boolean }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [translate, setTranslate] = useState({ x: 0, y: 0 });
   const lastTouchDistance = useRef<number | null>(null);
   const lastTouchCenter = useRef<{ x: number; y: number } | null>(null);
-  const isDragging = useRef(false);
+  const lastSingleTouch = useRef<{ x: number; y: number } | null>(null);
 
   const resetZoom = useCallback(() => {
     setScale(1);
@@ -62,15 +113,23 @@ function ZoomableContainer({ children, fullscreen }: { children: React.ReactNode
     function handleTouchStart(e: TouchEvent) {
       if (e.touches.length === 2) {
         e.preventDefault();
+        e.stopPropagation();
         lastTouchDistance.current = getTouchDistance(e.touches);
         lastTouchCenter.current = getTouchCenter(e.touches);
-        isDragging.current = true;
+        lastSingleTouch.current = null;
+      } else if (e.touches.length === 1 && scale > 1) {
+        // Allow panning when zoomed in
+        lastSingleTouch.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
       }
     }
 
     function handleTouchMove(e: TouchEvent) {
       if (e.touches.length === 2 && lastTouchDistance.current !== null) {
         e.preventDefault();
+        e.stopPropagation();
         const newDist = getTouchDistance(e.touches);
         const newCenter = getTouchCenter(e.touches);
         const ratio = newDist / lastTouchDistance.current;
@@ -85,13 +144,22 @@ function ZoomableContainer({ children, fullscreen }: { children: React.ReactNode
 
         lastTouchDistance.current = newDist;
         lastTouchCenter.current = newCenter;
+      } else if (e.touches.length === 1 && lastSingleTouch.current && scale > 1) {
+        e.preventDefault();
+        const dx = e.touches[0].clientX - lastSingleTouch.current.x;
+        const dy = e.touches[0].clientY - lastSingleTouch.current.y;
+        setTranslate((prev) => ({ x: prev.x + dx, y: prev.y + dy }));
+        lastSingleTouch.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
       }
     }
 
     function handleTouchEnd() {
       lastTouchDistance.current = null;
       lastTouchCenter.current = null;
-      isDragging.current = false;
+      lastSingleTouch.current = null;
     }
 
     el.addEventListener("touchstart", handleTouchStart, { passive: false });
@@ -103,7 +171,7 @@ function ZoomableContainer({ children, fullscreen }: { children: React.ReactNode
       el.removeEventListener("touchmove", handleTouchMove);
       el.removeEventListener("touchend", handleTouchEnd);
     };
-  }, [fullscreen]);
+  }, [fullscreen, scale]);
 
   if (!fullscreen) {
     return <>{children}</>;
@@ -142,13 +210,14 @@ function ZoomableContainer({ children, fullscreen }: { children: React.ReactNode
       </div>
       <div
         ref={containerRef}
-        className="h-full overflow-hidden touch-none"
+        className="h-full overflow-hidden"
         style={{ touchAction: "none" }}
       >
         <div
-          className="h-full flex items-center justify-center transition-transform duration-75"
+          className="h-full flex items-center justify-center"
           style={{
             transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
+            transformOrigin: "center center",
           }}
         >
           {children}
@@ -174,15 +243,18 @@ function ImagePreview({ url, fileName, fullscreen }: { url: string; fileName: st
 }
 
 function PdfPreview({ url, fullscreen }: { url: string; fullscreen?: boolean }) {
+  // On mobile, the browser's built-in PDF viewer handles its own zoom.
+  // We just need to prevent the native browser zoom (done via useDisableNativeZoom).
   return (
-    <ZoomableContainer fullscreen={fullscreen}>
-      <iframe
-        src={url}
-        className="w-full rounded-lg border"
-        style={{ height: fullscreen ? "calc(100dvh - 80px)" : "80vh", width: "100%" }}
-        title="Aperçu PDF"
-      />
-    </ZoomableContainer>
+    <iframe
+      src={url}
+      className="w-full rounded-lg border"
+      style={{
+        height: fullscreen ? "calc(100dvh - 60px)" : "80vh",
+        touchAction: "auto",
+      }}
+      title="Aperçu PDF"
+    />
   );
 }
 
@@ -360,6 +432,55 @@ function PreviewContent({
   return <NoPreview documentId={documentId} fileName={fileName} />;
 }
 
+function FullscreenViewer({
+  documentId,
+  mimeType,
+  fileName,
+  previewUrl,
+}: {
+  documentId: string;
+  mimeType: string;
+  fileName: string;
+  previewUrl: string;
+}) {
+  // Disable native browser zoom when fullscreen is open
+  useDisableNativeZoom(true);
+
+  return (
+    <>
+      <DialogTitle className="sr-only">{fileName}</DialogTitle>
+      <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b bg-white shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <DialogClose
+            render={<Button variant="ghost" size="icon" className="shrink-0" />}
+          >
+            <X className="h-5 w-5" />
+          </DialogClose>
+        </div>
+        <h3 className="text-sm font-medium truncate mx-2 flex-1 text-center">{fileName}</h3>
+        <a href={`/api/documents/${documentId}/download`} className="shrink-0">
+          <Button variant="outline" size="icon" className="sm:hidden">
+            <Download className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" className="hidden sm:flex">
+            <Download className="h-4 w-4 mr-1" />
+            Télécharger
+          </Button>
+        </a>
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <PreviewContent
+          mimeType={mimeType}
+          previewUrl={previewUrl}
+          documentId={documentId}
+          fileName={fileName}
+          fullscreen
+        />
+      </div>
+    </>
+  );
+}
+
 export function DocumentPreview({ documentId, mimeType, fileName }: DocumentPreviewProps) {
   const previewUrl = `/api/documents/${documentId}/preview`;
   const canFullscreen = !mimeType.startsWith("audio/") && !(
@@ -388,39 +509,15 @@ export function DocumentPreview({ documentId, mimeType, fileName }: DocumentPrev
             Plein écran
           </DialogTrigger>
           <DialogContent
-            className="!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-[100dvh] !rounded-none !p-0 touch-none"
+            className="!fixed !inset-0 !top-0 !left-0 !translate-x-0 !translate-y-0 !max-w-none !w-screen !h-[100dvh] !rounded-none !p-0 flex flex-col"
             showCloseButton={false}
-            style={{ touchAction: "none" }}
           >
-            <DialogTitle className="sr-only">{fileName}</DialogTitle>
-            <div className="flex items-center justify-between px-2 sm:px-4 py-2 border-b bg-white shrink-0">
-              <div className="flex items-center gap-2 shrink-0">
-                <DialogClose
-                  render={<Button variant="ghost" size="icon" className="shrink-0" />}
-                >
-                  <X className="h-5 w-5" />
-                </DialogClose>
-              </div>
-              <h3 className="text-sm font-medium truncate mx-2 flex-1 text-center">{fileName}</h3>
-              <a href={`/api/documents/${documentId}/download`} className="shrink-0">
-                <Button variant="outline" size="icon" className="sm:hidden">
-                  <Download className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm" className="hidden sm:flex">
-                  <Download className="h-4 w-4 mr-1" />
-                  Télécharger
-                </Button>
-              </a>
-            </div>
-            <div className="flex-1 overflow-auto p-2 touch-pan-x touch-pan-y" style={{ touchAction: "pan-x pan-y" }}>
-              <PreviewContent
-                mimeType={mimeType}
-                previewUrl={previewUrl}
-                documentId={documentId}
-                fileName={fileName}
-                fullscreen
-              />
-            </div>
+            <FullscreenViewer
+              documentId={documentId}
+              mimeType={mimeType}
+              fileName={fileName}
+              previewUrl={previewUrl}
+            />
           </DialogContent>
         </Dialog>
       )}
