@@ -38,13 +38,13 @@ export async function GET(
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": document.mimeType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(document.fileName)}"`,
+        "Content-Disposition": `inline; filename="${encodeURIComponent(document.fileName)}"`,
         "Content-Length": String(fileBuffer.byteLength),
       },
     });
   } catch {
     return NextResponse.json(
-      { error: "Erreur lors du téléchargement du document" },
+      { error: "Erreur lors de la prévisualisation du document" },
       { status: 500 }
     );
   }
