@@ -14,25 +14,13 @@ import {
   FileQuestion,
 } from "lucide-react";
 
-interface DemandesPageProps {
-  searchParams: Promise<{ status?: string }>;
-}
-
 const STATUS_TABS = [
   { value: "all", label: "Toutes" },
   ...REQUEST_STATUSES.map((s) => ({ value: s.value, label: s.label })),
 ];
 
-export default async function DemandesPage({ searchParams }: DemandesPageProps) {
-  const { status } = await searchParams;
-
-  const where: Record<string, unknown> = {};
-  if (status && status !== "all") {
-    where.status = status;
-  }
-
+export default async function DemandesPage() {
   const requests = await prisma.request.findMany({
-    where,
     include: {
       _count: {
         select: { comments: true },
@@ -41,7 +29,7 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
     orderBy: { createdAt: "desc" },
   });
 
-  const activeTab = status || "all";
+  const activeTab = "all";
 
   return (
     <div className="space-y-6">
@@ -88,9 +76,7 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
               Aucune demande
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {status && status !== "all"
-                ? "Aucune demande avec ce statut."
-                : "Commencez par creer une nouvelle demande."}
+              Commencez par creer une nouvelle demande.
             </p>
             <Link href="/demandes/nouveau" className="mt-4">
               <Button variant="outline">
