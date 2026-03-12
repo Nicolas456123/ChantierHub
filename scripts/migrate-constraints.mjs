@@ -6,7 +6,7 @@ const client = createClient({
 });
 
 const migrations = [
-  `CREATE TABLE IF NOT EXISTS Constraint (
+  `CREATE TABLE IF NOT EXISTS "Constraint" (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     description TEXT,
@@ -23,9 +23,9 @@ const migrations = [
     updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (projectId) REFERENCES Project(id) ON DELETE CASCADE
   )`,
-  `CREATE INDEX IF NOT EXISTS Constraint_projectId_idx ON Constraint(projectId)`,
-  `CREATE INDEX IF NOT EXISTS Constraint_status_idx ON Constraint(status)`,
-  `CREATE INDEX IF NOT EXISTS Constraint_dueDate_idx ON Constraint(dueDate)`,
+  `CREATE INDEX IF NOT EXISTS Constraint_projectId_idx ON "Constraint"(projectId)`,
+  `CREATE INDEX IF NOT EXISTS Constraint_status_idx ON "Constraint"(status)`,
+  `CREATE INDEX IF NOT EXISTS Constraint_dueDate_idx ON "Constraint"(dueDate)`,
 ];
 
 async function main() {
