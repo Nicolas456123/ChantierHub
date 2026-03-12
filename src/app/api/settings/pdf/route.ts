@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
 
     // Validate the settings object
-    const settings = {
+    const settings: Record<string, unknown> = {
       logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : undefined,
       companyName: typeof body.companyName === "string" ? body.companyName : undefined,
       companyAddress: typeof body.companyAddress === "string" ? body.companyAddress : undefined,
@@ -45,6 +45,11 @@ export async function PUT(request: NextRequest) {
       sitePhotoUrl: typeof body.sitePhotoUrl === "string" ? body.sitePhotoUrl : undefined,
       siteAddress: typeof body.siteAddress === "string" ? body.siteAddress : undefined,
       projectDescription: typeof body.projectDescription === "string" ? body.projectDescription : undefined,
+      columnWidths: body.columnWidths && typeof body.columnWidths === "object" ? body.columnWidths : undefined,
+      fontFamily: typeof body.fontFamily === "string" ? body.fontFamily : undefined,
+      showContacts: typeof body.showContacts === "boolean" ? body.showContacts : undefined,
+      showConvocation: typeof body.showConvocation === "boolean" ? body.showConvocation : undefined,
+      visibleCategories: Array.isArray(body.visibleCategories) ? body.visibleCategories : undefined,
     };
 
     // Clean undefined keys

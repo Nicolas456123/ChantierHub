@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TiptapEditor } from "@/components/tiptap-editor";
 import { CommentsSection } from "@/components/comments-section";
-import { MeetingReportPreview } from "@/components/meeting-report-preview";
+import { LayoutEditor } from "./layout-editor";
 import {
   MEETING_REPORT_STATUSES,
   ATTENDANCE_STATUSES,
@@ -40,9 +40,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ClipboardList,
-  BookTemplate,
-  Save,
-  Star,
+  Palette,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -100,13 +98,6 @@ interface MeetingReport {
   observations: Observation[];
 }
 
-interface MeetingTemplate {
-  id: string;
-  name: string;
-  content: string;
-  isDefault: boolean;
-}
-
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
@@ -119,6 +110,24 @@ interface PdfSettings {
   sitePhotoUrl?: string;
   siteAddress?: string;
   projectDescription?: string;
+  columnWidths?: {
+    attendance?: {
+      designation?: string;
+      societe?: string;
+      nom?: string;
+      presence?: string;
+      convocation?: string;
+    };
+    observations?: {
+      description?: string;
+      pourLe?: string;
+      faitLe?: string;
+    };
+  };
+  fontFamily?: string;
+  showContacts?: boolean;
+  showConvocation?: boolean;
+  visibleCategories?: string[];
 }
 
 interface Props {
@@ -144,26 +153,9 @@ export function MeetingReportEditor({
   const [observations, setObservations] = useState(initialReport.observations);
   const [saving, setSaving] = useState(false);
   const [generalNotes, setGeneralNotes] = useState(initialReport.generalNotes);
-  const [showPreview, setShowPreview] = useState(false);
+  const [showLayoutEditor, setShowLayoutEditor] = useState(false);
   const [editorKey, setEditorKey] = useState(0);
-
-  // Templates
-  const [templates, setTemplates] = useState<MeetingTemplate[]>([]);
-  const [showTemplateMenu, setShowTemplateMenu] = useState(false);
-  const [showSaveTemplate, setShowSaveTemplate] = useState(false);
-  const [newTemplateName, setNewTemplateName] = useState("");
-  const [newTemplateDefault, setNewTemplateDefault] = useState(false);
-  const [savingTemplate, setSavingTemplate] = useState(false);
-
-  // Load templates on mount
-  useEffect(() => {
-    fetch("/api/meeting-templates")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setTemplates(data);
-      })
-      .catch(() => {});
-  }, []);
+  const [currentPdfSettings, setCurrentPdfSettings] = useState<PdfSettings>(pdfSettings as PdfSettings);
 
   // Header info editing
   const [editingHeader, setEditingHeader] = useState(false);
@@ -195,60 +187,6 @@ export function MeetingReportEditor({
     retard: observations.filter((o) => o.status === "retard").length,
     urgent: observations.filter((o) => o.status === "urgent").length,
   };
-
-  // ─── Template actions ────────────────────────────────────────────
-  function applyTemplate(template: MeetingTemplate) {
-    setGeneralNotes(template.content);
-    setEditorKey((k) => k + 1); // Force TiptapEditor remount
-    setShowTemplateMenu(false);
-    saveGeneralNotes(template.content);
-    toast.success(`Modèle "${template.name}" appliqué`);
-  }
-
-  async function saveAsTemplate() {
-    if (!newTemplateName.trim()) return;
-    setSavingTemplate(true);
-    try {
-      const res = await fetch("/api/meeting-templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newTemplateName.trim(),
-          content: generalNotes,
-          isDefault: newTemplateDefault,
-        }),
-      });
-      if (!res.ok) throw new Error();
-      const created = await res.json();
-      setTemplates((prev) => {
-        const updated = newTemplateDefault
-          ? prev.map((t) => ({ ...t, isDefault: false }))
-          : [...prev];
-        if (newTemplateDefault) {
-          return [created, ...updated];
-        }
-        return [...updated, created];
-      });
-      setNewTemplateName("");
-      setNewTemplateDefault(false);
-      setShowSaveTemplate(false);
-      toast.success("Modèle sauvegardé");
-    } catch {
-      toast.error("Erreur lors de la sauvegarde du modèle");
-    } finally {
-      setSavingTemplate(false);
-    }
-  }
-
-  async function deleteTemplate(templateId: string) {
-    try {
-      await fetch(`/api/meeting-templates/${templateId}`, { method: "DELETE" });
-      setTemplates((prev) => prev.filter((t) => t.id !== templateId));
-      toast.success("Modèle supprimé");
-    } catch {
-      toast.error("Erreur lors de la suppression");
-    }
-  }
 
   // ─── Save header ─────────────────────────────────────────────────
   async function saveHeader() {
@@ -391,11 +329,6 @@ export function MeetingReportEditor({
     }
   }
 
-  // ─── Preview ───────────────────────────────────────────────────────
-  function openPreview() {
-    setShowPreview(true);
-  }
-
   return (
     <div className="space-y-6">
       <PageHeader
@@ -408,9 +341,9 @@ export function MeetingReportEditor({
         })}
         action={
           <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={openPreview}>
-              <Eye className="h-4 w-4 mr-1" />
-              Aperçu
+            <Button size="sm" variant="outline" onClick={() => setShowLayoutEditor(true)}>
+              <Palette className="h-4 w-4 mr-1" />
+              Mise en page
             </Button>
             <Button
               size="sm"
@@ -453,57 +386,25 @@ export function MeetingReportEditor({
         }
       />
 
-      {/* HTML Preview Modal */}
-      {showPreview && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b bg-background rounded-t-lg">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Aperçu — CR n°{report.number}
-              </h3>
-              <div className="flex items-center gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    window.open(
-                      `/api/meeting-reports/${report.id}/pdf`,
-                      "_blank"
-                    );
-                  }}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Exporter PDF
-                </Button>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="h-8 w-8"
-                  onClick={() => setShowPreview(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="flex-1 overflow-auto bg-gray-200 p-6">
-              <div className="mx-auto shadow-xl" style={{ maxWidth: "210mm" }}>
-                <MeetingReportPreview
-                  report={{
-                    ...report,
-                    generalNotes: generalNotes,
-                    attendances,
-                    sections: sections,
-                    observations,
-                  }}
-                  projectName={projectName}
-                  previousReportNumber={previousReportNumber}
-                  pdfSettings={pdfSettings}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Layout Editor (split-screen) */}
+      {showLayoutEditor && (
+        <LayoutEditor
+          report={{
+            ...report,
+            generalNotes: generalNotes,
+            attendances,
+            sections: sections,
+            observations,
+          }}
+          projectName={projectName}
+          previousReportNumber={previousReportNumber}
+          pdfSettings={currentPdfSettings}
+          onClose={() => setShowLayoutEditor(false)}
+          onSave={(newSettings) => {
+            setCurrentPdfSettings(newSettings as PdfSettings);
+            setShowLayoutEditor(false);
+          }}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -643,156 +544,10 @@ export function MeetingReportEditor({
           {/* General notes */}
           <Card>
             <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  Généralités
-                </CardTitle>
-                <div className="flex items-center gap-1 relative">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => {
-                      setShowTemplateMenu(!showTemplateMenu);
-                      setShowSaveTemplate(false);
-                    }}
-                  >
-                    <BookTemplate className="h-3.5 w-3.5 mr-1" />
-                    Modèles
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={() => {
-                      setShowSaveTemplate(!showSaveTemplate);
-                      setShowTemplateMenu(false);
-                    }}
-                  >
-                    <Save className="h-3.5 w-3.5 mr-1" />
-                    Sauvegarder
-                  </Button>
-
-                  {/* Template selector dropdown */}
-                  {showTemplateMenu && (
-                    <div className="absolute top-full right-0 mt-1 bg-background border rounded-lg shadow-lg z-20 w-72">
-                      <div className="p-2 border-b">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          Appliquer un modèle
-                        </p>
-                      </div>
-                      {templates.length === 0 ? (
-                        <div className="p-4 text-center">
-                          <p className="text-sm text-muted-foreground">
-                            Aucun modèle enregistré
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Rédigez vos généralités puis cliquez
-                            &quot;Sauvegarder&quot; pour créer un modèle
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="max-h-60 overflow-y-auto">
-                          {templates.map((tpl) => (
-                            <div
-                              key={tpl.id}
-                              className="flex items-center gap-2 px-3 py-2 hover:bg-accent group"
-                            >
-                              <button
-                                className="flex-1 text-left text-sm truncate"
-                                onClick={() => applyTemplate(tpl)}
-                              >
-                                {tpl.isDefault && (
-                                  <Star className="h-3 w-3 inline mr-1 text-yellow-500 fill-yellow-500" />
-                                )}
-                                {tpl.name}
-                              </button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-6 w-6 opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-red-500"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  deleteTemplate(tpl.id);
-                                }}
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <div className="p-2 border-t">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-full h-7 text-xs"
-                          onClick={() => {
-                            setShowTemplateMenu(false);
-                          }}
-                        >
-                          Fermer
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Save as template dialog */}
-                  {showSaveTemplate && (
-                    <div className="absolute top-full right-0 mt-1 bg-background border rounded-lg shadow-lg z-20 w-72 p-3">
-                      <p className="text-xs font-medium text-muted-foreground mb-2">
-                        Sauvegarder comme modèle
-                      </p>
-                      <Input
-                        value={newTemplateName}
-                        onChange={(e) => setNewTemplateName(e.target.value)}
-                        placeholder="Nom du modèle"
-                        className="h-8 text-sm mb-2"
-                        autoFocus
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") saveAsTemplate();
-                        }}
-                      />
-                      <label className="flex items-center gap-2 text-xs text-muted-foreground mb-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={newTemplateDefault}
-                          onChange={(e) =>
-                            setNewTemplateDefault(e.target.checked)
-                          }
-                          className="rounded"
-                        />
-                        Modèle par défaut pour les nouveaux CR
-                      </label>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="h-7 flex-1"
-                          onClick={saveAsTemplate}
-                          disabled={
-                            savingTemplate || !newTemplateName.trim()
-                          }
-                        >
-                          {savingTemplate ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            "Enregistrer"
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7"
-                          onClick={() => setShowSaveTemplate(false)}
-                        >
-                          Annuler
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <FileText className="h-4 w-4" />
+                Généralités
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <TiptapEditor

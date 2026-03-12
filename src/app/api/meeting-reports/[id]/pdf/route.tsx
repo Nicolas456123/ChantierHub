@@ -17,11 +17,11 @@ export async function GET(
       include: {
         attendances: {
           include: { company: true },
-          orderBy: { company: { sortOrder: "asc" } },
+          orderBy: { company: { lotNumber: "asc" } },
         },
         sections: {
           include: { company: true },
-          orderBy: { sortOrder: "asc" },
+          orderBy: { company: { lotNumber: "asc" } },
         },
         observations: {
           orderBy: { createdAt: "asc" },

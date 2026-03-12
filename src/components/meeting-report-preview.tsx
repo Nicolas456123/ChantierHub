@@ -57,6 +57,21 @@ interface MeetingReport {
   observations: Observation[];
 }
 
+interface ColumnWidths {
+  attendance?: {
+    designation?: string;
+    societe?: string;
+    nom?: string;
+    presence?: string;
+    convocation?: string;
+  };
+  observations?: {
+    description?: string;
+    pourLe?: string;
+    faitLe?: string;
+  };
+}
+
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
@@ -69,6 +84,11 @@ interface PdfSettings {
   sitePhotoUrl?: string;
   siteAddress?: string;
   projectDescription?: string;
+  columnWidths?: ColumnWidths;
+  fontFamily?: string;
+  showContacts?: boolean;
+  showConvocation?: boolean;
+  visibleCategories?: string[];
 }
 
 interface Props {
@@ -97,14 +117,14 @@ function formatDateLong(date: string): string {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  en_cours: "EN COURS",
-  fait: "FAIT",
+  en_cours: "En cours",
+  fait: "Fait",
   retard: "RETARD",
   urgent: "URGENT",
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  en_cours: "#1d4ed8",
+  en_cours: "#2563eb",
   fait: "#16a34a",
   retard: "#dc2626",
   urgent: "#ea580c",
@@ -118,11 +138,11 @@ const ATTENDANCE_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  administratif: "ADMINISTRATIF",
-  etudes: "\u00c9TUDES",
-  controle: "BUREAU DE CONTR\u00d4LE",
-  avancement: "Point effectif / avancement / pr\u00e9visions",
-  visite: "Visite de chantier et d\u00e9tails d\u2019ex\u00e9cution",
+  administratif: "Administratif",
+  etudes: "\u00c9tudes",
+  controle: "Bureau de contr\u00f4le",
+  avancement: "Avancement / Pr\u00e9visions",
+  visite: "Visite de chantier",
 };
 
 const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
@@ -143,6 +163,30 @@ function parseContacts(contactsJson?: string): Contact[] {
     return [];
   }
 }
+
+function sortByLotNumber<T>(items: T[], getCompany: (item: T) => Company | null | undefined): T[] {
+  return [...items].sort((a, b) => {
+    const compA = getCompany(a);
+    const compB = getCompany(b);
+    const lotA = compA?.lotNumber ?? "zzz";
+    const lotB = compB?.lotNumber ?? "zzz";
+    return lotA.localeCompare(lotB, undefined, { numeric: true });
+  });
+}
+
+const DEFAULT_ATTENDANCE_WIDTHS = {
+  designation: "25%",
+  societe: "20%",
+  nom: "28%",
+  presence: "12%",
+  convocation: "15%",
+};
+
+const DEFAULT_OBSERVATION_WIDTHS = {
+  description: "60%",
+  pourLe: "20%",
+  faitLe: "20%",
+};
 
 // ─── Tiptap JSON → HTML ─────────────────────────────────────────────
 interface TiptapNode {
@@ -234,11 +278,28 @@ export function MeetingReportPreview({
   previousReportNumber,
   pdfSettings,
 }: Props) {
-  const headerColor = pdfSettings?.headerColor || "#1e3a5f";
+  const accent = pdfSettings?.headerColor || "#2563eb";
   const companyName = pdfSettings?.companyName || "";
   const crDate = formatDate(report.date);
   const footerLeft = pdfSettings?.footerText || companyName || projectName;
-  const footerCenter = `CR du ${crDate}`;
+  const footerCenter = `Compte-rendu du ${crDate}`;
+  const fontFamily = pdfSettings?.fontFamily || "Arial, Helvetica, sans-serif";
+  const showContacts = pdfSettings?.showContacts !== false; // default true
+  const showConvocation = pdfSettings?.showConvocation !== false; // default true
+  const visibleCategories = pdfSettings?.visibleCategories ?? CATEGORY_ORDER;
+
+  const attWidths = { ...DEFAULT_ATTENDANCE_WIDTHS, ...pdfSettings?.columnWidths?.attendance };
+  const obsWidths = { ...DEFAULT_OBSERVATION_WIDTHS, ...pdfSettings?.columnWidths?.observations };
+
+  const sortedAttendances = useMemo(
+    () => sortByLotNumber(report.attendances, (att) => att.company),
+    [report.attendances]
+  );
+
+  const sortedSections = useMemo(
+    () => sortByLotNumber(report.sections, (sec) => sec.company),
+    [report.sections]
+  );
 
   const generalObs = useMemo(
     () => report.observations.filter((o) => !o.companyId),
@@ -246,32 +307,32 @@ export function MeetingReportPreview({
   );
 
   return (
-    <div className="bg-white text-black" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "10px" }}>
+    <div className="bg-white text-black" style={{ fontFamily, fontSize: "10px", color: "#222" }}>
       {/* ═══════════ COVER PAGE ═══════════ */}
       {pdfSettings?.showCoverPage && (
         <div style={{
           width: "210mm",
           minHeight: "297mm",
-          padding: "30px 40px",
+          padding: "40px 50px",
           display: "flex",
           flexDirection: "column",
-          borderBottom: "3px solid #e5e7eb",
+          borderBottom: "2px solid #e5e7eb",
           marginBottom: "20px",
           pageBreakAfter: "always",
           boxSizing: "border-box",
         }}>
           {/* Top: Logo + Company Info */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "40px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "60px" }}>
             {pdfSettings.logoUrl && (
               <img
                 src={pdfSettings.logoUrl}
                 alt="Logo"
-                style={{ maxHeight: "80px", maxWidth: "200px", objectFit: "contain" }}
+                style={{ maxHeight: "70px", maxWidth: "180px", objectFit: "contain" }}
               />
             )}
             {(companyName || pdfSettings.companyAddress) && (
-              <div style={{ fontSize: "9px", color: "#444", lineHeight: "1.4" }}>
-                {companyName && <div style={{ fontWeight: "bold", fontSize: "11px" }}>{companyName}</div>}
+              <div style={{ fontSize: "9px", color: "#555", lineHeight: "1.5" }}>
+                {companyName && <div style={{ fontWeight: "bold", fontSize: "10px", color: "#333" }}>{companyName}</div>}
                 {pdfSettings.companyAddress && (
                   <div style={{ whiteSpace: "pre-line", marginTop: "2px" }}>
                     {pdfSettings.companyAddress}
@@ -283,57 +344,62 @@ export function MeetingReportPreview({
 
           {/* Center: Title Block */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-            <div style={{
-              border: `3px solid ${headerColor}`,
-              padding: "30px 60px",
-              textAlign: "center",
-              marginBottom: "30px",
-              width: "80%",
-            }}>
-              <div style={{ fontSize: "22px", fontWeight: "bold", color: headerColor, letterSpacing: "1px" }}>
-                {pdfSettings.coverTitle || "COMPTE-RENDU"}
+            {/* Thin decorative line */}
+            <div style={{ width: "60px", height: "3px", backgroundColor: accent, marginBottom: "24px" }} />
+
+            <div style={{ textAlign: "center", marginBottom: "32px" }}>
+              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#222", letterSpacing: "2px", textTransform: "uppercase" }}>
+                {pdfSettings.coverTitle || "Compte-rendu"}
               </div>
-              <div style={{ fontSize: "18px", fontWeight: "bold", color: headerColor, marginTop: "4px" }}>
-                {pdfSettings.coverSubtitle || "R\u00c9UNION DE CHANTIER"}
+              <div style={{ fontSize: "15px", color: "#555", marginTop: "8px", fontWeight: "500" }}>
+                {pdfSettings.coverSubtitle || "R\u00e9union de chantier"}
               </div>
-              <div style={{ fontSize: "14px", color: headerColor, marginTop: "12px", fontWeight: "bold" }}>
-                R\u00e9union du {formatDateLong(report.date)}
+              <div style={{ width: "40px", height: "2px", backgroundColor: accent, margin: "16px auto" }} />
+              <div style={{ fontSize: "13px", color: "#444", marginTop: "8px" }}>
+                {formatDateLong(report.date)}
               </div>
             </div>
 
             {/* Project Info */}
-            <div style={{ textAlign: "center", marginBottom: "20px" }}>
-              <div style={{ fontSize: "16px", fontWeight: "bold", color: "#333", marginBottom: "6px" }}>
+            <div style={{ textAlign: "center", marginBottom: "24px" }}>
+              <div style={{ fontSize: "18px", fontWeight: "bold", color: "#222", marginBottom: "8px" }}>
                 {projectName}
               </div>
               {pdfSettings.projectDescription && (
-                <div style={{ fontSize: "12px", color: "#555", marginBottom: "6px", maxWidth: "400px" }}>
+                <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px", maxWidth: "380px", lineHeight: "1.5" }}>
                   {pdfSettings.projectDescription}
                 </div>
               )}
               {pdfSettings.siteAddress && (
-                <div style={{ fontSize: "11px", color: "#666" }}>
+                <div style={{ fontSize: "10px", color: "#888" }}>
                   {pdfSettings.siteAddress}
                 </div>
               )}
             </div>
 
-            <div style={{ fontSize: "14px", color: "#666", marginTop: "8px" }}>
-              CR n&deg;{report.number}
+            <div style={{
+              display: "inline-block",
+              padding: "6px 20px",
+              backgroundColor: accent,
+              color: "white",
+              fontSize: "12px",
+              fontWeight: "bold",
+              letterSpacing: "1px",
+            }}>
+              CR N°{report.number}
             </div>
 
             {/* Site Photo */}
             {pdfSettings.sitePhotoUrl && (
-              <div style={{ marginTop: "30px" }}>
+              <div style={{ marginTop: "36px" }}>
                 <img
                   src={pdfSettings.sitePhotoUrl}
                   alt="Photo du chantier"
                   style={{
-                    maxHeight: "250px",
-                    maxWidth: "400px",
+                    maxHeight: "220px",
+                    maxWidth: "380px",
                     objectFit: "cover",
-                    borderRadius: "4px",
-                    border: "1px solid #ddd",
+                    border: "1px solid #e5e7eb",
                   }}
                 />
               </div>
@@ -341,8 +407,8 @@ export function MeetingReportPreview({
           </div>
 
           {/* Bottom */}
-          <div style={{ textAlign: "center", fontSize: "10px", color: "#999", paddingTop: "20px" }}>
-            &Eacute;dit&eacute; le {new Date().toLocaleDateString("fr-FR")}
+          <div style={{ textAlign: "center", fontSize: "9px", color: "#aaa", paddingTop: "16px" }}>
+            {`\u00c9dit\u00e9 le ${new Date().toLocaleDateString("fr-FR")}`}
           </div>
         </div>
       )}
@@ -356,61 +422,67 @@ export function MeetingReportPreview({
         boxSizing: "border-box",
       }}>
         {/* Page header with logo */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          {pdfSettings?.logoUrl && (
+        {pdfSettings?.logoUrl && (
+          <div style={{ marginBottom: "20px" }}>
             <img
               src={pdfSettings.logoUrl}
               alt="Logo"
-              style={{ maxHeight: "40px", maxWidth: "150px", objectFit: "contain" }}
+              style={{ maxHeight: "35px", maxWidth: "130px", objectFit: "contain" }}
             />
-          )}
-          <div style={{ flex: 1 }} />
-        </div>
+          </div>
+        )}
 
         {/* ─── Attendance Table ─── */}
-        <SectionBanner color={headerColor}>LISTE DE PR&Eacute;SENCE</SectionBanner>
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px", fontSize: "9px" }}>
+        <SectionTitle color={accent}>Liste de pr{"\u00e9"}sence</SectionTitle>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px", fontSize: "9px" }}>
           <thead>
             <tr>
-              <th style={thStyleBorder}>D&eacute;signation</th>
-              <th style={thStyleBorder}>Soci&eacute;t&eacute;</th>
-              <th style={thStyleBorder}>Nom</th>
-              <th style={{ ...thStyleBorder, width: "55px", textAlign: "center" }}>Pr&eacute;sence</th>
-              <th style={{ ...thStyleBorder, width: "55px", textAlign: "center" }}>Convocation</th>
+              <th style={{ ...thStyle, width: attWidths.designation }}>D{"\u00e9"}signation</th>
+              <th style={{ ...thStyle, width: attWidths.societe }}>Soci{"\u00e9"}t{"\u00e9"}</th>
+              <th style={{ ...thStyle, width: attWidths.nom }}>Nom / Contact</th>
+              <th style={{ ...thStyle, width: attWidths.presence, textAlign: "center" }}>Pr{"\u00e9"}s.</th>
+              {showConvocation && (
+                <th style={{ ...thStyle, width: attWidths.convocation, textAlign: "center" }}>Conv.</th>
+              )}
             </tr>
           </thead>
           <tbody>
-            {report.attendances.map((att) => {
+            {sortedAttendances.map((att, i) => {
               const contacts = parseContacts(att.company.contacts);
               const designation = att.company.lotNumber
                 ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` \u2014 ${att.company.lotLabel}` : ""}`
                 : att.company.lotLabel || "\u2014";
+              const isAlt = i % 2 === 1;
 
               return (
-                <tr key={att.id}>
-                  <td style={tdStyleBorder}>{designation}</td>
-                  <td style={{ ...tdStyleBorder, fontWeight: "bold" }}>{att.company.name}</td>
-                  <td style={tdStyleBorder}>
+                <tr key={att.id} style={isAlt ? { backgroundColor: "#f9fafb" } : undefined}>
+                  <td style={{ ...tdStyle, width: attWidths.designation }}>{designation}</td>
+                  <td style={{ ...tdStyle, width: attWidths.societe, fontWeight: "600" }}>{att.company.name}</td>
+                  <td style={{ ...tdStyle, width: attWidths.nom }}>
                     {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
-                    {contacts.length > 0 && contacts[0].phone && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#666" }}>
+                    {showContacts && contacts.length > 0 && contacts[0].phone && (
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
                         {contacts[0].phone}
                       </span>
                     )}
-                    {contacts.length > 0 && contacts[0].email && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#666" }}>
+                    {showContacts && contacts.length > 0 && contacts[0].email && (
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
                         {contacts[0].email}
                       </span>
                     )}
                   </td>
-                  <td style={{ ...tdStyleBorder, textAlign: "center", fontWeight: "bold" }}>
-                    <span style={{ color: att.status === "present" ? "#16a34a" : att.status === "absent" ? "#dc2626" : "#666" }}>
+                  <td style={{ ...tdStyle, width: attWidths.presence, textAlign: "center", fontWeight: "bold" }}>
+                    <span style={{
+                      color: att.status === "present" ? "#16a34a" : att.status === "absent" ? "#dc2626" : "#888",
+                    }}>
                       {ATTENDANCE_LABELS[att.status] ?? att.status}
                     </span>
                   </td>
-                  <td style={{ ...tdStyleBorder, textAlign: "center", fontSize: "8px" }}>
-                    {att.status !== "non_convoque" ? "Oui" : "Non"}
-                  </td>
+                  {showConvocation && (
+                    <td style={{ ...tdStyle, width: attWidths.convocation, textAlign: "center", fontSize: "8px", color: "#555" }}>
+                      {att.status !== "non_convoque" ? "Oui" : "Non"}
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -418,61 +490,60 @@ export function MeetingReportPreview({
         </table>
 
         {/* Attendance legend */}
-        <div style={{ fontSize: "7.5px", color: "#888", marginBottom: "16px", display: "flex", gap: "12px" }}>
-          <span><strong>P</strong> = Pr&eacute;sent</span>
+        <div style={{ fontSize: "7.5px", color: "#999", marginBottom: "16px", display: "flex", gap: "14px" }}>
+          <span><strong>P</strong> = Pr{"\u00e9"}sent</span>
           <span><strong>A</strong> = Absent</span>
-          <span><strong>E</strong> = Excus&eacute;</span>
-          <span><strong>NC</strong> = Non convoqu&eacute;</span>
+          <span><strong>E</strong> = Excus{"\u00e9"}</span>
+          <span><strong>NC</strong> = Non convoqu{"\u00e9"}</span>
         </div>
 
         {/* ─── Next meeting ─── */}
         {report.nextMeetingDate && (
           <div style={{
-            border: `2px solid ${headerColor}`,
+            backgroundColor: "#f8f9fa",
+            borderLeft: `4px solid ${accent}`,
             padding: "10px 16px",
-            marginBottom: "16px",
-            textAlign: "center",
+            marginBottom: "20px",
           }}>
-            <span style={{ fontSize: "11px", fontWeight: "bold", color: headerColor }}>
-              PROCHAINE R&Eacute;UNION : {formatDateLong(report.nextMeetingDate).toUpperCase()}
-              {report.nextMeetingTime && ` &Agrave; ${report.nextMeetingTime}`}
+            <span style={{ fontSize: "10px", fontWeight: "bold", color: "#333" }}>
+              Prochaine r{"\u00e9"}union :{" "}
             </span>
-            {report.location && (
-              <span style={{ fontSize: "10px", color: "#666", marginLeft: "12px" }}>
-                &mdash; {report.location}
-              </span>
-            )}
+            <span style={{ fontSize: "10px", color: "#444" }}>
+              {formatDateLong(report.nextMeetingDate)}
+              {report.nextMeetingTime && ` \u00e0 ${report.nextMeetingTime}`}
+              {report.location && ` \u2014 ${report.location}`}
+            </span>
           </div>
         )}
 
         {/* ─── Généralités ─── */}
-        <SectionBanner color={headerColor}>G&Eacute;N&Eacute;RALIT&Eacute;S</SectionBanner>
-        <div style={{ marginBottom: "20px" }}>
+        <SectionTitle color={accent}>G{"\u00e9"}n{"\u00e9"}ralit{"\u00e9"}s</SectionTitle>
+        <div style={{ marginBottom: "24px" }}>
           <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(report.generalNotes) }} />
         </div>
 
         {/* ─── Company Sections ─── */}
-        {report.sections.map((section) => {
+        {sortedSections.map((section) => {
           const sectionObs = report.observations.filter(
             (o) => o.companyId === section.company?.id
           );
 
           return (
-            <div key={section.id} style={{ pageBreakInside: "avoid", marginBottom: "20px" }}>
-              {/* Company Section Header */}
-              <CompanySectionHeader section={section} color={headerColor} />
+            <div key={section.id} style={{ pageBreakInside: "avoid", marginBottom: "24px" }}>
+              <CompanySectionHeader section={section} color={accent} />
 
-              {/* Section rich text content */}
               {section.content && section.content !== "{}" && (
                 <div style={{ marginBottom: "8px" }}>
                   <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(section.content) }} />
                 </div>
               )}
 
-              {/* Observations Table grouped by category */}
               <ObservationsCategoryTable
                 observations={sectionObs}
                 previousReportNumber={previousReportNumber}
+                obsWidths={obsWidths}
+                color={accent}
+                visibleCategories={visibleCategories}
               />
             </div>
           );
@@ -480,11 +551,14 @@ export function MeetingReportPreview({
 
         {/* ─── General observations ─── */}
         {generalObs.length > 0 && (
-          <div>
-            <SectionBanner color={headerColor}>OBSERVATIONS G&Eacute;N&Eacute;RALES</SectionBanner>
+          <div style={{ marginBottom: "24px" }}>
+            <SectionTitle color={accent}>Observations g{"\u00e9"}n{"\u00e9"}rales</SectionTitle>
             <ObservationsCategoryTable
               observations={generalObs}
               previousReportNumber={previousReportNumber}
+              obsWidths={obsWidths}
+              color={accent}
+              visibleCategories={visibleCategories}
             />
           </div>
         )}
@@ -494,8 +568,8 @@ export function MeetingReportPreview({
           display: "flex",
           justifyContent: "space-between",
           fontSize: "8px",
-          color: "#666",
-          borderTop: "1px solid #ccc",
+          color: "#999",
+          borderTop: "1px solid #e5e7eb",
           paddingTop: "8px",
           marginTop: "40px",
         }}>
@@ -510,18 +584,18 @@ export function MeetingReportPreview({
 
 // ─── Sub-components ─────────────────────────────────────────────────
 
-function SectionBanner({ children, color }: { children: React.ReactNode; color: string }) {
+function SectionTitle({ children, color }: { children: React.ReactNode; color: string }) {
   return (
     <div style={{
-      backgroundColor: color,
-      color: "white",
-      padding: "8px 16px",
       fontSize: "12px",
       fontWeight: "bold",
-      letterSpacing: "0.5px",
+      color: "#222",
+      paddingBottom: "6px",
+      borderBottom: `2px solid ${color}`,
       marginBottom: "10px",
-      marginTop: "16px",
-      textAlign: "center",
+      marginTop: "18px",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
     }}>
       {children}
     </div>
@@ -531,35 +605,32 @@ function SectionBanner({ children, color }: { children: React.ReactNode; color: 
 function CompanySectionHeader({ section, color }: { section: Section; color: string }) {
   const company = section.company;
   if (!company) {
-    return <SectionBanner color={color}>{section.title}</SectionBanner>;
+    return <SectionTitle color={color}>{section.title}</SectionTitle>;
   }
 
-  const lotLine = company.lotNumber ? `LOT n\u00b0 ${company.lotNumber}` : null;
-  const lotLabel = company.lotLabel || "";
-  const companyName = company.name;
+  const parts: string[] = [];
+  if (company.lotNumber) parts.push(`Lot ${company.lotNumber}`);
+  if (company.lotLabel) parts.push(company.lotLabel.toUpperCase());
+  parts.push(company.name.toUpperCase());
 
   return (
     <div style={{
-      border: `2px solid ${color}`,
-      padding: "12px 20px",
-      textAlign: "center",
+      borderLeft: `4px solid ${color}`,
+      backgroundColor: "#f8f9fa",
+      padding: "10px 16px",
       marginBottom: "10px",
       marginTop: "20px",
-      pageBreakInside: "avoid",
     }}>
-      {lotLine && (
-        <div style={{ fontSize: "14px", fontWeight: "bold", color: "#333" }}>
-          {lotLine}
+      {parts.map((part, i) => (
+        <div key={i} style={{
+          fontSize: i === 0 && company.lotNumber ? "12px" : "11px",
+          fontWeight: "bold",
+          color: "#333",
+          lineHeight: "1.4",
+        }}>
+          {part}
         </div>
-      )}
-      {lotLabel && (
-        <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>
-          {lotLabel}
-        </div>
-      )}
-      <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>
-        {companyName}
-      </div>
+      ))}
     </div>
   );
 }
@@ -567,40 +638,57 @@ function CompanySectionHeader({ section, color }: { section: Section; color: str
 function ObservationsCategoryTable({
   observations,
   previousReportNumber,
+  obsWidths,
+  color,
+  visibleCategories,
 }: {
   observations: Observation[];
   previousReportNumber: number | null;
+  obsWidths: { description: string; pourLe: string; faitLe: string };
+  color: string;
+  visibleCategories?: string[];
 }) {
-  // Group observations by category
+  const filteredCategories = visibleCategories && visibleCategories.length > 0
+    ? CATEGORY_ORDER.filter((cat) => visibleCategories.includes(cat))
+    : CATEGORY_ORDER;
+
   const obsByCategory: Record<string, Observation[]> = {};
-  for (const cat of CATEGORY_ORDER) {
+  for (const cat of filteredCategories) {
     obsByCategory[cat] = [];
   }
   obsByCategory["_other"] = [];
 
   for (const obs of observations) {
-    const cat = obs.category && CATEGORY_ORDER.includes(obs.category) ? obs.category : "_other";
+    const cat = obs.category && filteredCategories.includes(obs.category) ? obs.category : "_other";
     obsByCategory[cat].push(obs);
   }
 
+  let catIndex = 0;
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "12px" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "8px" }}>
       <tbody>
-        {CATEGORY_ORDER.map((cat, idx) => (
-          <CategoryRows
-            key={cat}
-            index={idx + 1}
-            label={CATEGORY_LABELS[cat]}
-            observations={obsByCategory[cat]}
-            previousReportNumber={previousReportNumber}
-          />
-        ))}
+        {filteredCategories.map((cat) => {
+          catIndex++;
+          return (
+            <CategoryRows
+              key={cat}
+              index={catIndex}
+              label={CATEGORY_LABELS[cat]}
+              observations={obsByCategory[cat]}
+              previousReportNumber={previousReportNumber}
+              obsWidths={obsWidths}
+              color={color}
+            />
+          );
+        })}
         {obsByCategory["_other"].length > 0 && (
           <CategoryRows
-            index={6}
-            label="DIVERS"
+            index={catIndex + 1}
+            label="Divers"
             observations={obsByCategory["_other"]}
             previousReportNumber={previousReportNumber}
+            obsWidths={obsWidths}
+            color={color}
           />
         )}
       </tbody>
@@ -613,47 +701,54 @@ function CategoryRows({
   label,
   observations,
   previousReportNumber,
+  obsWidths,
+  color,
 }: {
   index: number;
   label: string;
   observations: Observation[];
   previousReportNumber: number | null;
+  obsWidths: { description: string; pourLe: string; faitLe: string };
+  color: string;
 }) {
   return (
     <>
       {/* Category header row */}
       <tr>
         <td style={{
-          ...tdStyleBorder,
+          ...tdStyle,
           fontWeight: "bold",
           fontSize: "9px",
-          backgroundColor: "#f0f0f0",
-          width: "60%",
+          backgroundColor: "#f1f5f9",
+          borderLeft: `3px solid ${color}`,
+          width: obsWidths.description,
           padding: "5px 8px",
         }}>
           {index}. {label}
         </td>
         <td style={{
-          ...tdStyleBorder,
-          width: "20%",
+          ...tdStyle,
+          width: obsWidths.pourLe,
           textAlign: "center",
           fontSize: "8px",
           fontWeight: "bold",
-          backgroundColor: "#f0f0f0",
+          backgroundColor: "#f1f5f9",
           padding: "5px 4px",
+          color: "#555",
         }}>
-          Pour le :
+          Pour le
         </td>
         <td style={{
-          ...tdStyleBorder,
-          width: "20%",
+          ...tdStyle,
+          width: obsWidths.faitLe,
           textAlign: "center",
           fontSize: "8px",
           fontWeight: "bold",
-          backgroundColor: "#f0f0f0",
+          backgroundColor: "#f1f5f9",
           padding: "5px 4px",
+          color: "#555",
         }}>
-          Fait le :
+          Fait le
         </td>
       </tr>
       {/* Observation rows */}
@@ -663,28 +758,31 @@ function CategoryRows({
         return (
           <tr key={obs.id}>
             <td style={{
-              ...tdStyleBorder,
-              padding: "4px 8px 4px 20px",
+              ...tdStyle,
+              width: obsWidths.description,
+              padding: "4px 8px 4px 16px",
               color: isRetardOrUrgent ? "#dc2626" : "#333",
               fontStyle: isRetardOrUrgent ? "italic" : "normal",
             }}>
               {obs.description}
               {obs.sourceObservationId && previousReportNumber && (
-                <span style={{ fontSize: "7px", color: "#ea580c", marginLeft: "4px" }}>
-                  (CR n&deg;{previousReportNumber})
+                <span style={{ fontSize: "7px", color: "#9ca3af", marginLeft: "4px", fontStyle: "normal" }}>
+                  (CR n°{previousReportNumber})
                 </span>
               )}
             </td>
             <td style={{
-              ...tdStyleBorder,
+              ...tdStyle,
+              width: obsWidths.pourLe,
               textAlign: "center",
               fontSize: "8px",
-              color: isRetardOrUrgent ? "#dc2626" : "#666",
+              color: isRetardOrUrgent ? "#dc2626" : "#888",
             }}>
               {obs.dueDate ? formatDate(obs.dueDate) : ""}
             </td>
             <td style={{
-              ...tdStyleBorder,
+              ...tdStyle,
+              width: obsWidths.faitLe,
               textAlign: "center",
               fontSize: "8px",
               fontWeight: isRetardOrUrgent ? "bold" : "normal",
@@ -697,12 +795,11 @@ function CategoryRows({
           </tr>
         );
       })}
-      {/* Empty row if no observations */}
       {observations.length === 0 && (
         <tr>
-          <td style={{ ...tdStyleBorder, padding: "4px 8px 4px 20px", color: "#ccc" }}>&nbsp;</td>
-          <td style={{ ...tdStyleBorder, textAlign: "center" }}>&nbsp;</td>
-          <td style={{ ...tdStyleBorder, textAlign: "center" }}>&nbsp;</td>
+          <td style={{ ...tdStyle, width: obsWidths.description, padding: "4px 8px 4px 16px", color: "#d1d5db" }}>{"\u2014"}</td>
+          <td style={{ ...tdStyle, width: obsWidths.pourLe, textAlign: "center" }}>{"\u00a0"}</td>
+          <td style={{ ...tdStyle, width: obsWidths.faitLe, textAlign: "center" }}>{"\u00a0"}</td>
         </tr>
       )}
     </>
@@ -710,20 +807,20 @@ function CategoryRows({
 }
 
 // ─── Styles ─────────────────────────────────────────────────────────
-const thStyleBorder: React.CSSProperties = {
+const thStyle: React.CSSProperties = {
   fontSize: "8px",
-  fontWeight: "bold",
-  color: "#333",
+  fontWeight: "600",
+  color: "#555",
   textTransform: "uppercase",
+  letterSpacing: "0.3px",
   padding: "6px 8px",
-  border: "1px solid #333",
+  borderBottom: "2px solid #333",
   textAlign: "left",
-  backgroundColor: "#f0f0f0",
 };
 
-const tdStyleBorder: React.CSSProperties = {
+const tdStyle: React.CSSProperties = {
   padding: "4px 8px",
-  border: "1px solid #999",
+  borderBottom: "1px solid #e5e7eb",
   verticalAlign: "top",
   fontSize: "9px",
 };

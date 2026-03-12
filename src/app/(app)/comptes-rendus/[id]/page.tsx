@@ -18,11 +18,11 @@ export default async function CompteRenduDetailPage({ params }: PageProps) {
     include: {
       attendances: {
         include: { company: true },
-        orderBy: { company: { sortOrder: "asc" } },
+        orderBy: { company: { lotNumber: "asc" } },
       },
       sections: {
         include: { company: true },
-        orderBy: { sortOrder: "asc" },
+        orderBy: { company: { lotNumber: "asc" } },
       },
       observations: {
         orderBy: { createdAt: "asc" },
@@ -43,7 +43,7 @@ export default async function CompteRenduDetailPage({ params }: PageProps) {
   // Get all companies for reference
   const companies = await prisma.company.findMany({
     where: { projectId },
-    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+    orderBy: [{ lotNumber: "asc" }, { name: "asc" }],
   });
 
   // Get project name and PDF settings
