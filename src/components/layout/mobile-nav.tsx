@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { HardHat, LayoutDashboard, BookOpen, FileQuestion, FolderOpen, CheckSquare, Shield, CalendarRange, Clock, Settings } from "lucide-react";
+import { HardHat, LayoutDashboard, BookOpen, FileQuestion, FolderOpen, CheckSquare, Shield, ClipboardList, CalendarRange, Clock, Settings } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard, BookOpen, FileQuestion, FolderOpen, CheckSquare, Shield, CalendarRange, Clock, Settings,
+  LayoutDashboard, BookOpen, FileQuestion, FolderOpen, CheckSquare, Shield, ClipboardList, CalendarRange, Clock, Settings,
 };
 
 interface MobileNavProps {

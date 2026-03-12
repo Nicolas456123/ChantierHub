@@ -14,6 +14,7 @@ import {
   PENALTY_CAP_UNITS,
 } from "@/lib/constants";
 import { ArrowLeft, Calendar, User, Clock, Euro, FileText, Scale, AlertTriangle, Pencil } from "lucide-react";
+import { CommentsSection } from "@/components/comments-section";
 import { StatusChanger } from "./status-changer";
 import { DeleteButton } from "./delete-button";
 import { PenaltyCalculator } from "./penalty-calculator";
@@ -258,6 +259,8 @@ export default async function ContrainteDetailPage({
               </div>
             </CardContent>
           </Card>
+
+          <CommentsSection entityType="constraint" entityId={constraint.id} />
         </div>
 
         {/* Sidebar */}
@@ -281,6 +284,9 @@ export default async function ContrainteDetailPage({
             penaltyCap={constraint.penaltyCap}
             penaltyCapUnit={constraint.penaltyCapUnit}
             occurrences={constraint.occurrences ?? 0}
+            dueDate={constraint.dueDate?.toISOString() ?? null}
+            penaltyStartDate={constraint.penaltyStartDate?.toISOString() ?? null}
+            resolvedDate={constraint.resolvedDate?.toISOString() ?? null}
           />
 
           {constraint.recurrenceType && constraint.recurrenceType !== "ponctuelle" && (

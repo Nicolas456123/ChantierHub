@@ -116,6 +116,34 @@ export const RECURRENCE_TYPES = [
   { value: "trimestrielle", label: "Trimestrielle" },
 ] as const;
 
+export const ATTENDANCE_STATUSES = [
+  { value: "present", label: "Présent", color: "bg-green-100 text-green-800" },
+  { value: "absent", label: "Absent", color: "bg-red-100 text-red-800" },
+  { value: "excuse", label: "Excusé", color: "bg-yellow-100 text-yellow-800" },
+  { value: "non_convoque", label: "Non convoqué", color: "bg-gray-100 text-gray-600" },
+] as const;
+
+export const OBSERVATION_STATUSES = [
+  { value: "en_cours", label: "En cours", color: "bg-blue-100 text-blue-800" },
+  { value: "fait", label: "Fait", color: "bg-green-100 text-green-800" },
+  { value: "retard", label: "Retard", color: "bg-red-100 text-red-800" },
+  { value: "urgent", label: "Urgent", color: "bg-orange-100 text-orange-800" },
+] as const;
+
+export const OBSERVATION_CATEGORIES = [
+  { value: "administratif", label: "Administratif" },
+  { value: "etudes", label: "Études" },
+  { value: "controle", label: "Bureau de contrôle" },
+  { value: "avancement", label: "Avancement / Prévisions" },
+  { value: "visite", label: "Visite de chantier" },
+] as const;
+
+export const MEETING_REPORT_STATUSES = [
+  { value: "brouillon", label: "Brouillon", color: "bg-gray-100 text-gray-800" },
+  { value: "valide", label: "Validé", color: "bg-green-100 text-green-800" },
+  { value: "diffuse", label: "Diffusé", color: "bg-blue-100 text-blue-800" },
+] as const;
+
 export const NAV_ITEMS = [
   { href: "/", label: "Tableau de bord", icon: "LayoutDashboard" },
   { href: "/journal", label: "Journal", icon: "BookOpen" },
@@ -123,6 +151,7 @@ export const NAV_ITEMS = [
   { href: "/documents", label: "Documents", icon: "FolderOpen" },
   { href: "/taches", label: "Tâches", icon: "CheckSquare" },
   { href: "/contraintes", label: "Suivi contractuel", icon: "Shield" },
+  { href: "/comptes-rendus", label: "Comptes-rendus", icon: "ClipboardList" },
   { href: "/planning", label: "Planning", icon: "CalendarRange" },
   { href: "/historique", label: "Historique", icon: "Clock" },
   { href: "/parametres", label: "Paramètres", icon: "Settings" },

@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { TASK_STATUSES, PRIORITIES } from "@/lib/constants";
 import { TaskStatusChanger } from "./task-status-changer";
+import { CommentsSection } from "@/components/comments-section";
 import { DeleteTaskButton } from "./delete-task-button";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +69,8 @@ export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
               }} />
             </CardContent>
           </Card>
+
+          <CommentsSection entityType="task" entityId={task.id} />
         </div>
 
         <div className="space-y-6">

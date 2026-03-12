@@ -10,6 +10,7 @@ import { formatDate, formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES } from "@/lib/constants";
 import { ArrowLeft, Download } from "lucide-react";
 import { DocumentPreview } from "@/components/documents/document-preview";
+import { CommentsSection } from "@/components/comments-section";
 import { DeleteDocumentButton } from "../delete-document-button";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +82,8 @@ export default async function DocumentDetailPage({
           />
         </CardContent>
       </Card>
+
+      <CommentsSection entityType="document" entityId={document.id} />
     </div>
   );
 }

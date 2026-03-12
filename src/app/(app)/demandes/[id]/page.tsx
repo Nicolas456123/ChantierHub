@@ -9,8 +9,8 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime, formatRelativeTime } from "@/lib/format";
 import { REQUEST_TYPES, REQUEST_STATUSES } from "@/lib/constants";
 import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
+import { CommentsSection } from "@/components/comments-section";
 import { StatusChanger } from "./status-changer";
-import { CommentSection } from "./comment-section";
 import { DeleteRequest } from "./delete-request";
 
 export const dynamic = "force-dynamic";
@@ -28,9 +28,7 @@ export default async function DemandeDetailPage({
   const requestItem = await prisma.request.findFirst({
     where: { id, projectId },
     include: {
-      comments: {
-        orderBy: { createdAt: "asc" },
-      },
+      _count: { select: { comments: true } },
     },
   });
 
@@ -131,15 +129,7 @@ export default async function DemandeDetailPage({
           </Card>
 
           {/* Comments */}
-          <CommentSection
-            requestId={requestItem.id}
-            initialComments={requestItem.comments.map((c) => ({
-              id: c.id,
-              content: c.content,
-              author: c.author,
-              createdAt: c.createdAt.toISOString(),
-            }))}
-          />
+          <CommentsSection entityType="request" entityId={requestItem.id} />
         </div>
 
         {/* Sidebar */}
@@ -187,7 +177,7 @@ export default async function DemandeDetailPage({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Commentaires</span>
-                <span className="font-medium">{requestItem.comments.length}</span>
+                <span className="font-medium">{requestItem._count.comments}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Derniere mise a jour</span>

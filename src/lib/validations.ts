@@ -86,6 +86,36 @@ export const constraintSchema = z.object({
   recurrenceType: z.enum(["ponctuelle", "hebdomadaire", "bimensuelle", "mensuelle", "trimestrielle"]).optional().nullable(),
   recurrenceDay: z.number().int().min(1).max(31).optional().nullable(),
   responsible: z.string().optional(),
+  resolvedDate: z.string().optional().nullable(),
+  penaltyStartDate: z.string().optional().nullable(),
+});
+
+export const companySchema = z.object({
+  name: z.string().min(1, "Le nom est requis").max(200),
+  lotNumber: z.string().max(20).optional().nullable(),
+  lotLabel: z.string().max(200).optional().nullable(),
+  contacts: z.string().optional().default("[]"),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+export const meetingReportSchema = z.object({
+  date: z.string().min(1, "La date est requise"),
+  location: z.string().max(300).optional().nullable(),
+  nextMeetingDate: z.string().optional().nullable(),
+  nextMeetingTime: z.string().max(10).optional().nullable(),
+  weather: z.string().max(200).optional().nullable(),
+  generalNotes: z.string().optional().default("{}"),
+  status: z.enum(["brouillon", "valide", "diffuse"]).optional().default("brouillon"),
+});
+
+export const observationSchema = z.object({
+  description: z.string().min(1, "La description est requise"),
+  category: z.enum(["administratif", "etudes", "controle", "avancement", "visite"]).optional().nullable(),
+  dueDate: z.string().optional().nullable(),
+  doneDate: z.string().optional().nullable(),
+  status: z.enum(["en_cours", "fait", "retard", "urgent"]).optional().default("en_cours"),
+  companyId: z.string().optional().nullable(),
+  sectionId: z.string().optional().nullable(),
 });
 
 export const accessCodeSchema = z.object({

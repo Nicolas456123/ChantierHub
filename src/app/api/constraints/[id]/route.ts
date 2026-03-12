@@ -83,6 +83,9 @@ export async function PUT(
     } else if (Object.keys(body).length === 1 && body.occurrences !== undefined) {
       // Partial update: occurrences only
       updateData = { occurrences: Math.max(0, parseInt(body.occurrences) || 0) };
+    } else if (Object.keys(body).length === 1 && body.resolvedDate !== undefined) {
+      // Partial update: resolvedDate only (from penalty calculator)
+      updateData = { resolvedDate: body.resolvedDate ? new Date(body.resolvedDate) : null };
     } else {
       const parsed = constraintSchema.parse(body);
       updateData = {
@@ -106,6 +109,8 @@ export async function PUT(
         occurrences: parsed.occurrences ?? 0,
         recurrenceType: parsed.recurrenceType ?? null,
         recurrenceDay: parsed.recurrenceDay ?? null,
+        resolvedDate: parsed.resolvedDate ? new Date(parsed.resolvedDate) : null,
+        penaltyStartDate: parsed.penaltyStartDate ? new Date(parsed.penaltyStartDate) : null,
         responsible: parsed.responsible ?? null,
       };
     }

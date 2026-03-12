@@ -88,6 +88,8 @@ export async function POST(request: NextRequest) {
         recurrenceType: parsed.recurrenceType ?? null,
         recurrenceDay: parsed.recurrenceDay ?? null,
         responsible: parsed.responsible ?? null,
+        penaltyStartDate: parsed.penaltyStartDate ? new Date(parsed.penaltyStartDate) : null,
+        resolvedDate: parsed.resolvedDate ? new Date(parsed.resolvedDate) : null,
         author,
         projectId,
       },

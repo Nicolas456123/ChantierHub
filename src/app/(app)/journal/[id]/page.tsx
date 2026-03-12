@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { ArrowLeft, Pencil } from "lucide-react";
+import { CommentsSection } from "@/components/comments-section";
 import { DeleteEventButton } from "./delete-button";
 
 export const dynamic = "force-dynamic";
@@ -124,6 +125,8 @@ export default async function EventPage({ params }: EventPageProps) {
           </div>
         </CardContent>
       </Card>
+
+      <CommentsSection entityType="event" entityId={event.id} />
     </div>
   );
 }

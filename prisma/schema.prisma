@@ -44,7 +44,9 @@ model Project {
   documents    Document[]
   tasks        Task[]
   activities   Activity[]
-  constraints  Constraint[]
+  constraints    Constraint[]
+  companies      Company[]
+  meetingReports MeetingReport[]
 }
 
 model UserProject {
@@ -99,14 +101,17 @@ model Request {
 }
 
 model Comment {
-  id        String   @id @default(cuid())
-  content   String
-  author    String
-  requestId String
-  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  content    String
+  author     String
+  entityType String?
+  entityId   String?
+  requestId  String?
+  request    Request? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
 
   @@index([requestId])
+  @@index([entityType, entityId])
 }
 
 model Document {
@@ -182,10 +187,12 @@ model Constraint {
   escalation      String?
   condition       String?
   sourceDocument  String?
-  occurrences     Int       @default(0)
-  recurrenceType  String?
-  recurrenceDay   Int?
-  responsible     String?
+  occurrences      Int       @default(0)
+  recurrenceType   String?
+  recurrenceDay    Int?
+  resolvedDate     DateTime?
+  penaltyStartDate DateTime?
+  responsible      String?
   author          String
   projectId       String
   project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -196,4 +203,102 @@ model Constraint {
   @@index([status])
   @@index([dueDate])
   @@index([category])
+}
+
+model Company {
+  id         String   @id @default(cuid())
+  name       String
+  lotNumber  String?
+  lotLabel   String?
+  contacts   String   @default("[]")
+  sortOrder  Int      @default(0)
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  attendances MeetingAttendance[]
+  sections    MeetingSection[]
+  observations Observation[]
+
+  @@index([projectId])
+  @@index([projectId, sortOrder])
+}
+
+model MeetingReport {
+  id              String    @id @default(cuid())
+  number          Int
+  date            DateTime
+  location        String?
+  nextMeetingDate DateTime?
+  nextMeetingTime String?
+  weather         String?
+  generalNotes    String    @default("{}")
+  status          String    @default("brouillon")
+  author          String
+  previousId      String?
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  attendances  MeetingAttendance[]
+  sections     MeetingSection[]
+  observations Observation[]
+
+  @@index([projectId])
+  @@index([projectId, number])
+}
+
+model MeetingAttendance {
+  id              String        @id @default(cuid())
+  meetingReportId String
+  meetingReport   MeetingReport @relation(fields: [meetingReportId], references: [id], onDelete: Cascade)
+  companyId       String
+  company         Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  status          String        @default("absent")
+  representant    String?
+
+  @@unique([meetingReportId, companyId])
+  @@index([meetingReportId])
+}
+
+model MeetingSection {
+  id              String        @id @default(cuid())
+  meetingReportId String
+  meetingReport   MeetingReport @relation(fields: [meetingReportId], references: [id], onDelete: Cascade)
+  companyId       String?
+  company         Company?      @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  title           String
+  content         String        @default("{}")
+  sortOrder       Int           @default(0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  observations Observation[]
+
+  @@index([meetingReportId])
+  @@index([meetingReportId, sortOrder])
+}
+
+model Observation {
+  id                  String         @id @default(cuid())
+  meetingReportId     String
+  meetingReport       MeetingReport  @relation(fields: [meetingReportId], references: [id], onDelete: Cascade)
+  sectionId           String?
+  section             MeetingSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  companyId           String?
+  company             Company?       @relation(fields: [companyId], references: [id], onDelete: SetNull)
+  description         String
+  category            String?
+  dueDate             DateTime?
+  doneDate            DateTime?
+  status              String         @default("en_cours")
+  sourceObservationId String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  @@index([meetingReportId])
+  @@index([companyId])
+  @@index([status])
 }
