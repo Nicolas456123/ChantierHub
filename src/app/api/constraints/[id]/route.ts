@@ -80,6 +80,9 @@ export async function PUT(
         );
       }
       updateData = { status: body.status };
+    } else if (Object.keys(body).length === 1 && body.occurrences !== undefined) {
+      // Partial update: occurrences only
+      updateData = { occurrences: Math.max(0, parseInt(body.occurrences) || 0) };
     } else {
       const parsed = constraintSchema.parse(body);
       updateData = {
@@ -100,6 +103,9 @@ export async function PUT(
         escalation: parsed.escalation ?? null,
         condition: parsed.condition ?? null,
         sourceDocument: parsed.sourceDocument ?? null,
+        occurrences: parsed.occurrences ?? 0,
+        recurrenceType: parsed.recurrenceType ?? null,
+        recurrenceDay: parsed.recurrenceDay ?? null,
         responsible: parsed.responsible ?? null,
       };
     }

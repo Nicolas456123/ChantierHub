@@ -182,6 +182,9 @@ model Constraint {
   escalation      String?
   condition       String?
   sourceDocument  String?
+  occurrences     Int       @default(0)
+  recurrenceType  String?
+  recurrenceDay   Int?
   responsible     String?
   author          String
   projectId       String

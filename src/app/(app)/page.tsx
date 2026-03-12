@@ -125,7 +125,7 @@ export default async function DashboardPage() {
     {
       label: "Contraintes",
       value: violatedConstraints > 0
-        ? `${violatedConstraints} violée${violatedConstraints > 1 ? "s" : ""} / ${totalConstraints}`
+        ? `${violatedConstraints} non respectée${violatedConstraints > 1 ? "s" : ""} / ${totalConstraints}`
         : `${activeConstraints} active${activeConstraints > 1 ? "s" : ""} / ${totalConstraints}`,
       icon: Shield,
       href: "/contraintes",
@@ -180,7 +180,7 @@ export default async function DashboardPage() {
             <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-800">
-                {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} violée{violatedConstraints > 1 ? "s" : ""}
+                {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} non respectée{violatedConstraints > 1 ? "s" : ""}
               </p>
               <p className="text-xs text-red-600">Des pénalités financières peuvent s&apos;appliquer</p>
             </div>

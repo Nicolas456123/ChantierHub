@@ -16,6 +16,7 @@ import {
 import { ArrowLeft, Calendar, User, Clock, Euro, FileText, Scale, AlertTriangle, Pencil } from "lucide-react";
 import { StatusChanger } from "./status-changer";
 import { DeleteButton } from "./delete-button";
+import { PenaltyCalculator } from "./penalty-calculator";
 
 export const dynamic = "force-dynamic";
 
@@ -272,6 +273,38 @@ export default async function ContrainteDetailPage({
               />
             </CardContent>
           </Card>
+
+          <PenaltyCalculator
+            constraintId={constraint.id}
+            penaltyAmount={constraint.penaltyAmount}
+            penaltyPer={constraint.penaltyPer || constraint.penaltyUnit}
+            penaltyCap={constraint.penaltyCap}
+            penaltyCapUnit={constraint.penaltyCapUnit}
+            occurrences={constraint.occurrences ?? 0}
+          />
+
+          {constraint.recurrenceType && constraint.recurrenceType !== "ponctuelle" && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Récurrence
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Fréquence</span>
+                  <span className="font-medium capitalize">{constraint.recurrenceType}</span>
+                </div>
+                {constraint.recurrenceDay && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Jour</span>
+                    <span className="font-medium">{constraint.recurrenceDay}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

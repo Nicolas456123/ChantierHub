@@ -122,7 +122,7 @@ export default function HistoriquePage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
           {Array.from({ length: 6 }).map((_, i) => (
             <Card key={i}>
               <CardContent className="p-4">
@@ -149,7 +149,7 @@ export default function HistoriquePage() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-2 md:grid-cols-2">
+          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
             {data.activities.map((activity) => {
               const dotColor =
                 TYPE_COLORS[activity.type] ?? "bg-gray-400";

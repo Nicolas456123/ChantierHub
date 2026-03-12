@@ -108,6 +108,14 @@ export const PENALTY_CAP_UNITS = [
   { value: "par_unite", label: "Plafond par unité" },
 ] as const;
 
+export const RECURRENCE_TYPES = [
+  { value: "ponctuelle", label: "Ponctuelle (pas de récurrence)" },
+  { value: "hebdomadaire", label: "Hebdomadaire" },
+  { value: "bimensuelle", label: "Toutes les 2 semaines" },
+  { value: "mensuelle", label: "Mensuelle" },
+  { value: "trimestrielle", label: "Trimestrielle" },
+] as const;
+
 export const NAV_ITEMS = [
   { href: "/", label: "Tableau de bord", icon: "LayoutDashboard" },
   { href: "/journal", label: "Journal", icon: "BookOpen" },

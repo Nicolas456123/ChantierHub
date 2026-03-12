@@ -125,7 +125,7 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
           {constraints.map((constraint) => {
             const categoryInfo = CONSTRAINT_CATEGORIES.find(
               (c) => c.value === (constraint.category || constraint.type)

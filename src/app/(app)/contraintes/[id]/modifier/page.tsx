@@ -30,6 +30,7 @@ import {
   CONSTRAINT_STATUSES,
   PENALTY_PER,
   PENALTY_CAP_UNITS,
+  RECURRENCE_TYPES,
 } from "@/lib/constants";
 import { ArrowLeft, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
@@ -62,6 +63,8 @@ export default function ModifierContraintePage() {
   const [escalation, setEscalation] = useState("");
   const [condition, setCondition] = useState("");
   const [penaltyDetails, setPenaltyDetails] = useState("");
+  const [recurrenceType, setRecurrenceType] = useState("");
+  const [recurrenceDay, setRecurrenceDay] = useState("");
 
   useEffect(() => {
     async function fetchConstraint() {
@@ -87,11 +90,14 @@ export default function ModifierContraintePage() {
         setEscalation(data.escalation || "");
         setCondition(data.condition || "");
         setPenaltyDetails(data.penaltyDetails || "");
+        setRecurrenceType(data.recurrenceType || "");
+        setRecurrenceDay(data.recurrenceDay ? String(data.recurrenceDay) : "");
 
         // Auto-expand if any advanced field has data
         const hasAdvanced = data.articleRef || data.sourceDocument ||
           data.penaltyFormula || data.penaltyCap || data.penaltyCapUnit ||
-          data.escalation || data.condition || data.penaltyDetails;
+          data.escalation || data.condition || data.penaltyDetails ||
+          (data.recurrenceType && data.recurrenceType !== "ponctuelle");
         if (hasAdvanced) setShowAdvanced(true);
       } catch {
         toast.error("Impossible de charger la contrainte");
@@ -138,6 +144,8 @@ export default function ModifierContraintePage() {
           escalation: escalation.trim() || undefined,
           condition: condition.trim() || undefined,
           penaltyDetails: penaltyDetails.trim() || undefined,
+          recurrenceType: recurrenceType || undefined,
+          recurrenceDay: recurrenceDay ? parseInt(recurrenceDay) : undefined,
         }),
       });
 
@@ -452,6 +460,53 @@ export default function ModifierContraintePage() {
                   onChange={(e) => setPenaltyDetails(e.target.value)}
                   rows={2}
                 />
+              </div>
+
+              <Separator />
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="recurrenceType">Récurrence</Label>
+                  <Select value={recurrenceType} onValueChange={(v) => v && setRecurrenceType(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Ponctuelle (par défaut)">
+                        {recurrenceType
+                          ? RECURRENCE_TYPES.find((r) => r.value === recurrenceType)?.label
+                          : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {RECURRENCE_TYPES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Pour les obligations périodiques (ex: bulletin météo toutes les 2 semaines)
+                  </p>
+                </div>
+
+                {recurrenceType && recurrenceType !== "ponctuelle" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="recurrenceDay">Jour de récurrence</Label>
+                    <Input
+                      id="recurrenceDay"
+                      type="number"
+                      placeholder={recurrenceType === "hebdomadaire" ? "1-7 (1=lundi)" : "1-31"}
+                      min="1"
+                      max={recurrenceType === "hebdomadaire" ? "7" : "31"}
+                      value={recurrenceDay}
+                      onChange={(e) => setRecurrenceDay(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      {recurrenceType === "hebdomadaire"
+                        ? "1=Lundi, 2=Mardi, ..., 7=Dimanche"
+                        : "Jour du mois (1-31)"}
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

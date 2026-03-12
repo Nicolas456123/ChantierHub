@@ -82,6 +82,9 @@ export const constraintSchema = z.object({
   escalation: z.string().max(1000).optional().nullable(),
   condition: z.string().max(1000).optional().nullable(),
   sourceDocument: z.string().max(200).optional().nullable(),
+  occurrences: z.number().int().min(0).optional().default(0),
+  recurrenceType: z.enum(["ponctuelle", "hebdomadaire", "bimensuelle", "mensuelle", "trimestrielle"]).optional().nullable(),
+  recurrenceDay: z.number().int().min(1).max(31).optional().nullable(),
   responsible: z.string().optional(),
 });
 

@@ -51,7 +51,7 @@ export default async function JournalPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
           {events.map((event) => {
             const category = EVENT_CATEGORIES.find(
               (c) => c.value === event.category
