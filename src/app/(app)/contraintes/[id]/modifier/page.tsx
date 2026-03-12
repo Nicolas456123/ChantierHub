@@ -23,6 +23,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import {
   CONSTRAINT_CATEGORIES,
   CONSTRAINT_CATEGORY_GROUPS,
@@ -30,7 +31,7 @@ import {
   PENALTY_PER,
   PENALTY_CAP_UNITS,
 } from "@/lib/constants";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
 
 export default function ModifierContraintePage() {
@@ -40,28 +41,27 @@ export default function ModifierContraintePage() {
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
-  // Identification
+  // Essentiels
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [articleRef, setArticleRef] = useState("");
-  const [sourceDocument, setSourceDocument] = useState("");
   const [description, setDescription] = useState("");
-
-  // Pénalité
   const [penaltyAmount, setPenaltyAmount] = useState("");
   const [penaltyPer, setPenaltyPer] = useState("");
+  const [status, setStatus] = useState("");
+  const [responsible, setResponsible] = useState("");
+  const [dueDate, setDueDate] = useState("");
+
+  // Avancés
+  const [articleRef, setArticleRef] = useState("");
+  const [sourceDocument, setSourceDocument] = useState("");
   const [penaltyFormula, setPenaltyFormula] = useState("");
   const [penaltyCap, setPenaltyCap] = useState("");
   const [penaltyCapUnit, setPenaltyCapUnit] = useState("");
   const [escalation, setEscalation] = useState("");
   const [condition, setCondition] = useState("");
   const [penaltyDetails, setPenaltyDetails] = useState("");
-
-  // Suivi
-  const [status, setStatus] = useState("");
-  const [responsible, setResponsible] = useState("");
-  const [dueDate, setDueDate] = useState("");
 
   useEffect(() => {
     async function fetchConstraint() {
@@ -71,20 +71,28 @@ export default function ModifierContraintePage() {
         const data = await res.json();
         setTitle(data.title || "");
         setCategory(data.category || data.type || "");
-        setArticleRef(data.articleRef || "");
-        setSourceDocument(data.sourceDocument || "");
         setDescription(data.description || "");
         setStatus(data.status || "active");
         setResponsible(data.responsible || "");
         setDueDate(data.dueDate ? data.dueDate.split("T")[0] : "");
         setPenaltyAmount(data.penaltyAmount ? String(data.penaltyAmount) : "");
         setPenaltyPer(data.penaltyPer || data.penaltyUnit || "");
+
+        // Avancés
+        setArticleRef(data.articleRef || "");
+        setSourceDocument(data.sourceDocument || "");
         setPenaltyFormula(data.penaltyFormula || "");
         setPenaltyCap(data.penaltyCap ? String(data.penaltyCap) : "");
         setPenaltyCapUnit(data.penaltyCapUnit || "");
         setEscalation(data.escalation || "");
         setCondition(data.condition || "");
         setPenaltyDetails(data.penaltyDetails || "");
+
+        // Auto-expand if any advanced field has data
+        const hasAdvanced = data.articleRef || data.sourceDocument ||
+          data.penaltyFormula || data.penaltyCap || data.penaltyCapUnit ||
+          data.escalation || data.condition || data.penaltyDetails;
+        if (hasAdvanced) setShowAdvanced(true);
       } catch {
         toast.error("Impossible de charger la contrainte");
         router.push("/contraintes");
@@ -138,7 +146,7 @@ export default function ModifierContraintePage() {
         throw new Error(data.error || "Erreur lors de la modification");
       }
 
-      toast.success("Contrainte modifiée avec succès");
+      toast.success("Point de suivi modifié avec succès");
       router.push(`/contraintes/${id}`);
     } catch (error) {
       toast.error(
@@ -172,11 +180,10 @@ export default function ModifierContraintePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Section 1: Identification */}
         <Card>
           <CardHeader>
-            <CardTitle>Identification</CardTitle>
-            <CardDescription>Informations générales de la clause ou contrainte</CardDescription>
+            <CardTitle>Informations principales</CardTitle>
+            <CardDescription>Renseignez les informations essentielles</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
@@ -220,26 +227,24 @@ export default function ModifierContraintePage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="articleRef">Référence article / clause</Label>
-                <Input
-                  id="articleRef"
-                  placeholder="Ex: Art. 10.3.1.2"
-                  value={articleRef}
-                  onChange={(e) => setArticleRef(e.target.value)}
-                  maxLength={100}
-                />
+                <Label htmlFor="status">Statut</Label>
+                <Select value={status} onValueChange={(v) => v && setStatus(v)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Sélectionnez un statut">
+                      {status
+                        ? CONSTRAINT_STATUSES.find((s) => s.value === status)?.label
+                        : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONSTRAINT_STATUSES.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="sourceDocument">Document source</Label>
-              <Input
-                id="sourceDocument"
-                placeholder="Ex: CCAP, Annexe technique, Contrat principal"
-                value={sourceDocument}
-                onChange={(e) => setSourceDocument(e.target.value)}
-                maxLength={200}
-              />
             </div>
 
             <div className="space-y-2">
@@ -252,19 +257,12 @@ export default function ModifierContraintePage() {
                 rows={3}
               />
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Section 2: Pénalité */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pénalité</CardTitle>
-            <CardDescription>Montant, mode de calcul et conditions d&apos;application</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            <Separator />
+
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="penaltyAmount">Montant (€)</Label>
+                <Label htmlFor="penaltyAmount">Montant pénalité (€)</Label>
                 <Input
                   id="penaltyAmount"
                   type="number"
@@ -297,116 +295,7 @@ export default function ModifierContraintePage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="penaltyFormula">Formule de calcul</Label>
-              <Input
-                id="penaltyFormula"
-                placeholder="Ex: 1/500ème du montant global et forfaitaire HT"
-                value={penaltyFormula}
-                onChange={(e) => setPenaltyFormula(e.target.value)}
-                maxLength={500}
-              />
-              <p className="text-xs text-muted-foreground">
-                Pour les pénalités proportionnelles ou avec une formule spécifique
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="penaltyCap">Plafond</Label>
-                <Input
-                  id="penaltyCap"
-                  type="number"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  value={penaltyCap}
-                  onChange={(e) => setPenaltyCap(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="penaltyCapUnit">Type de plafond</Label>
-                <Select value={penaltyCapUnit} onValueChange={(v) => v && setPenaltyCapUnit(v)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Sélectionnez">
-                      {penaltyCapUnit
-                        ? PENALTY_CAP_UNITS.find((u) => u.value === penaltyCapUnit)?.label
-                        : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PENALTY_CAP_UNITS.map((u) => (
-                      <SelectItem key={u.value} value={u.value}>
-                        {u.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="condition">Condition de déclenchement</Label>
-              <Textarea
-                id="condition"
-                placeholder="Ex: En cas de retard de plus de 30 minutes en réunion de chantier"
-                value={condition}
-                onChange={(e) => setCondition(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="escalation">Escalade / Récidive</Label>
-              <Textarea
-                id="escalation"
-                placeholder="Ex: 1 500€ première infraction, 3 000€ à partir de la deuxième"
-                value={escalation}
-                onChange={(e) => setEscalation(e.target.value)}
-                rows={2}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="penaltyDetails">Détails complémentaires</Label>
-              <Textarea
-                id="penaltyDetails"
-                placeholder="Toute information complémentaire sur la pénalité..."
-                value={penaltyDetails}
-                onChange={(e) => setPenaltyDetails(e.target.value)}
-                rows={2}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Section 3: Suivi */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Suivi</CardTitle>
-            <CardDescription>Statut, responsable et échéance</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="status">Statut</Label>
-              <Select value={status} onValueChange={(v) => v && setStatus(v)}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Sélectionnez un statut">
-                    {status
-                      ? CONSTRAINT_STATUSES.find((s) => s.value === status)?.label
-                      : undefined}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CONSTRAINT_STATUSES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <Separator />
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -431,6 +320,142 @@ export default function ModifierContraintePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Toggle pour options avancées */}
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full text-muted-foreground hover:text-foreground"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          {showAdvanced ? (
+            <ChevronUp className="h-4 w-4 mr-2" />
+          ) : (
+            <ChevronDown className="h-4 w-4 mr-2" />
+          )}
+          {showAdvanced ? "Masquer les options avancées" : "Plus d'options (référence, formule, plafond, conditions...)"}
+        </Button>
+
+        {/* Options avancées */}
+        {showAdvanced && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Options avancées</CardTitle>
+              <CardDescription>Référence contractuelle, formule de calcul, plafond et conditions</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="articleRef">Référence article / clause</Label>
+                  <Input
+                    id="articleRef"
+                    placeholder="Ex: Art. 10.3.1.2"
+                    value={articleRef}
+                    onChange={(e) => setArticleRef(e.target.value)}
+                    maxLength={100}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="sourceDocument">Document source</Label>
+                  <Input
+                    id="sourceDocument"
+                    placeholder="Ex: CCAP, Annexe technique"
+                    value={sourceDocument}
+                    onChange={(e) => setSourceDocument(e.target.value)}
+                    maxLength={200}
+                  />
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="penaltyFormula">Formule de calcul</Label>
+                <Input
+                  id="penaltyFormula"
+                  placeholder="Ex: 1/500ème du montant global et forfaitaire HT"
+                  value={penaltyFormula}
+                  onChange={(e) => setPenaltyFormula(e.target.value)}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Pour les pénalités proportionnelles ou avec une formule spécifique
+                </p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="penaltyCap">Plafond</Label>
+                  <Input
+                    id="penaltyCap"
+                    type="number"
+                    placeholder="0.00"
+                    min="0"
+                    step="0.01"
+                    value={penaltyCap}
+                    onChange={(e) => setPenaltyCap(e.target.value)}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="penaltyCapUnit">Type de plafond</Label>
+                  <Select value={penaltyCapUnit} onValueChange={(v) => v && setPenaltyCapUnit(v)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Sélectionnez">
+                        {penaltyCapUnit
+                          ? PENALTY_CAP_UNITS.find((u) => u.value === penaltyCapUnit)?.label
+                          : undefined}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PENALTY_CAP_UNITS.map((u) => (
+                        <SelectItem key={u.value} value={u.value}>
+                          {u.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="space-y-2">
+                <Label htmlFor="condition">Condition de déclenchement</Label>
+                <Textarea
+                  id="condition"
+                  placeholder="Ex: En cas de retard de plus de 30 minutes en réunion de chantier"
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="escalation">Escalade / Récidive</Label>
+                <Textarea
+                  id="escalation"
+                  placeholder="Ex: 1 500€ première infraction, 3 000€ à partir de la deuxième"
+                  value={escalation}
+                  onChange={(e) => setEscalation(e.target.value)}
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="penaltyDetails">Détails complémentaires</Label>
+                <Textarea
+                  id="penaltyDetails"
+                  placeholder="Toute information complémentaire sur la pénalité..."
+                  value={penaltyDetails}
+                  onChange={(e) => setPenaltyDetails(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="flex gap-2">
           <Button type="submit" disabled={isSubmitting}>

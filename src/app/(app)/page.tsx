@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     prisma.document.count({ where: { projectId } }),
     prisma.constraint.count({ where: { projectId } }),
     prisma.constraint.count({ where: { projectId, status: "active" } }),
-    prisma.constraint.count({ where: { projectId, status: "violee" } }),
+    prisma.constraint.count({ where: { projectId, status: "non_respectee" } }),
     prisma.event.findMany({ where: { projectId }, orderBy: { date: "desc" }, take: 5 }),
     prisma.activity.findMany({ where: { projectId }, orderBy: { createdAt: "desc" }, take: 10 }),
     prisma.task.findMany({
@@ -58,7 +58,7 @@ export default async function DashboardPage() {
       take: 5,
     }),
     prisma.constraint.findMany({
-      where: { projectId, status: { in: ["active", "violee"] } },
+      where: { projectId, status: { in: ["active", "non_respectee"] } },
       orderBy: { dueDate: "asc" },
       take: 5,
     }),

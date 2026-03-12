@@ -72,7 +72,7 @@ export async function PUT(
 
     let updateData;
     if (isStatusOnly) {
-      const validStatuses = ["active", "respectee", "violee"];
+      const validStatuses = ["active", "respectee", "non_respectee"];
       if (!validStatuses.includes(body.status)) {
         return NextResponse.json(
           { error: "Statut invalide" },

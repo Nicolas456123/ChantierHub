@@ -81,7 +81,7 @@ export const CONSTRAINT_CATEGORY_GROUPS = [
 export const CONSTRAINT_STATUSES = [
   { value: "active", label: "Active", color: "bg-blue-100 text-blue-800" },
   { value: "respectee", label: "Respectée", color: "bg-green-100 text-green-800" },
-  { value: "violee", label: "Violée", color: "bg-red-100 text-red-800" },
+  { value: "non_respectee", label: "Non respectée", color: "bg-red-100 text-red-800" },
 ] as const;
 
 // Legacy — kept for backward compatibility

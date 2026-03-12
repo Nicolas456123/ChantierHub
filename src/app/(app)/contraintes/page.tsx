@@ -44,7 +44,7 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
     total: allConstraints.length,
     active: allConstraints.filter((c) => c.status === "active").length,
     respectee: allConstraints.filter((c) => c.status === "respectee").length,
-    violee: allConstraints.filter((c) => c.status === "violee").length,
+    non_respectee: allConstraints.filter((c) => c.status === "non_respectee").length,
   };
 
   return (
@@ -89,12 +89,12 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
               Respectées ({stats.respectee})
             </Badge>
           </Link>
-          <Link href="/contraintes?status=violee">
+          <Link href="/contraintes?status=non_respectee">
             <Badge
-              variant={statusFilter === "violee" ? "default" : "outline"}
+              variant={statusFilter === "non_respectee" ? "default" : "outline"}
               className="cursor-pointer px-3 py-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
             >
-              Violées ({stats.violee})
+              Non respectées ({stats.non_respectee})
             </Badge>
           </Link>
         </div>

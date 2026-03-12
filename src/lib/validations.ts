@@ -66,7 +66,7 @@ export const constraintSchema = z.object({
     "nettoyage_chantier", "reunions", "absence_responsable",
     "qualite_mieux_disant", "contractuelle", "reglementaire", "autre",
   ]),
-  status: z.enum(["active", "respectee", "violee"]).default("active"),
+  status: z.enum(["active", "respectee", "non_respectee"]).default("active"),
   dueDate: z.string().optional().nullable(),
   articleRef: z.string().max(100).optional().nullable(),
   penaltyAmount: z.number().optional().nullable(),
