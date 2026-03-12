@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getDownloadUrl } from "@vercel/blob";
 
 export async function GET(
   _request: NextRequest,
@@ -19,8 +20,9 @@ export async function GET(
       );
     }
 
-    // Redirect to the Blob URL for download
-    return NextResponse.redirect(document.filePath);
+    // Get a temporary download URL for private blob
+    const downloadUrl = await getDownloadUrl(document.filePath);
+    return NextResponse.redirect(downloadUrl);
   } catch {
     return NextResponse.json(
       { error: "Erreur lors du téléchargement du document" },

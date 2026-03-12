@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
 
     // Upload to Vercel Blob Storage
     const blob = await put(`documents/${uniqueName}`, file, {
-      access: "public",
+      access: "private",
     });
 
     const document = await prisma.document.create({
