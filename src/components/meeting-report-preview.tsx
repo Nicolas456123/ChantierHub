@@ -8,6 +8,7 @@ interface Company {
   name: string;
   lotNumber: string | null;
   lotLabel: string | null;
+  contacts?: string;
 }
 
 interface Attendance {
@@ -59,11 +60,15 @@ interface MeetingReport {
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
+  companyAddress?: string;
   headerColor?: string;
   showCoverPage?: boolean;
   coverTitle?: string;
   coverSubtitle?: string;
   footerText?: string;
+  sitePhotoUrl?: string;
+  siteAddress?: string;
+  projectDescription?: string;
 }
 
 interface Props {
@@ -76,6 +81,14 @@ interface Props {
 // ─── Helpers ────────────────────────────────────────────────────────
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatDateLong(date: string): string {
+  return new Date(date).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -83,37 +96,53 @@ function formatDate(date: string): string {
   });
 }
 
-function formatDateShort(date: string): string {
-  return new Date(date).toLocaleDateString("fr-FR");
-}
-
 const STATUS_LABELS: Record<string, string> = {
-  en_cours: "En cours",
-  fait: "Fait",
-  retard: "Retard",
-  urgent: "Urgent",
+  en_cours: "EN COURS",
+  fait: "FAIT",
+  retard: "RETARD",
+  urgent: "URGENT",
 };
 
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  en_cours: { bg: "bg-blue-100", text: "text-blue-700" },
-  fait: { bg: "bg-green-100", text: "text-green-700" },
-  retard: { bg: "bg-red-100", text: "text-red-700" },
-  urgent: { bg: "bg-orange-100", text: "text-orange-700" },
+const STATUS_COLORS: Record<string, string> = {
+  en_cours: "#1d4ed8",
+  fait: "#16a34a",
+  retard: "#dc2626",
+  urgent: "#ea580c",
 };
 
 const ATTENDANCE_LABELS: Record<string, string> = {
-  present: "Présent",
-  absent: "Absent",
-  excuse: "Excusé",
-  non_convoque: "Non convoqué",
+  present: "P",
+  absent: "A",
+  excuse: "E",
+  non_convoque: "NC",
 };
 
-const ATTENDANCE_COLORS: Record<string, string> = {
-  present: "text-green-700",
-  absent: "text-red-600",
-  excuse: "text-yellow-600",
-  non_convoque: "text-gray-400",
+const CATEGORY_LABELS: Record<string, string> = {
+  administratif: "ADMINISTRATIF",
+  etudes: "\u00c9TUDES",
+  controle: "BUREAU DE CONTR\u00d4LE",
+  avancement: "Point effectif / avancement / pr\u00e9visions",
+  visite: "Visite de chantier et d\u00e9tails d\u2019ex\u00e9cution",
 };
+
+const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
+
+interface Contact {
+  name: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+}
+
+function parseContacts(contactsJson?: string): Contact[] {
+  if (!contactsJson) return [];
+  try {
+    const parsed = JSON.parse(contactsJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 // ─── Tiptap JSON → HTML ─────────────────────────────────────────────
 interface TiptapNode {
@@ -147,28 +176,35 @@ function renderTiptapHtml(json: string): string {
 }
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderNodeHtml(node: TiptapNode): string {
   switch (node.type) {
     case "paragraph":
-      return `<p style="margin:0 0 4px 0;line-height:1.5;font-size:10px">${renderInlineHtml(node.content)}</p>`;
+      return `<p style="margin:2px 0;line-height:1.5;font-size:10px">${renderInlineHtml(node.content)}</p>`;
     case "heading": {
       const level = (node.attrs?.level as number) ?? 2;
       const size = level === 2 ? "12px" : "11px";
-      return `<p style="font-size:${size};font-weight:bold;margin:8px 0 4px 0">${renderInlineHtml(node.content)}</p>`;
+      return `<p style="font-size:${size};font-weight:bold;margin:8px 0 3px 0">${renderInlineHtml(node.content)}</p>`;
     }
     case "bulletList":
-      return `<ul style="margin:0 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map((item) => `<li style="margin-bottom:2px">${renderInlineHtml(item.content?.[0]?.content)}</li>`).join("")}</ul>`;
+      return `<ul style="margin:2px 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ul>`;
     case "orderedList":
-      return `<ol style="margin:0 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map((item) => `<li style="margin-bottom:2px">${renderInlineHtml(item.content?.[0]?.content)}</li>`).join("")}</ol>`;
+      return `<ol style="margin:2px 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ol>`;
     default:
       return "";
   }
+}
+
+function renderListItemHtml(item: TiptapNode): string {
+  if (!item.content) return "<li></li>";
+  const inner = item.content.map((child) => {
+    if (child.type === "paragraph") return renderInlineHtml(child.content);
+    if (child.type === "bulletList" || child.type === "orderedList") return renderNodeHtml(child);
+    return "";
+  }).join("");
+  return `<li style="margin-bottom:1px">${inner}</li>`;
 }
 
 function renderInlineHtml(nodes?: TiptapNode[]): string {
@@ -181,8 +217,7 @@ function renderInlineHtml(nodes?: TiptapNode[]): string {
         for (const mark of marks) {
           if (mark.type === "bold") text = `<strong>${text}</strong>`;
           if (mark.type === "italic") text = `<em>${text}</em>`;
-          if (mark.type === "underline")
-            text = `<span style="text-decoration:underline">${text}</span>`;
+          if (mark.type === "underline") text = `<span style="text-decoration:underline">${text}</span>`;
         }
         return text;
       }
@@ -200,7 +235,10 @@ export function MeetingReportPreview({
   pdfSettings,
 }: Props) {
   const headerColor = pdfSettings?.headerColor || "#1e3a5f";
-  const today = new Date().toLocaleDateString("fr-FR");
+  const companyName = pdfSettings?.companyName || "";
+  const crDate = formatDate(report.date);
+  const footerLeft = pdfSettings?.footerText || companyName || projectName;
+  const footerCenter = `CR du ${crDate}`;
 
   const generalObs = useMemo(
     () => report.observations.filter((o) => !o.companyId),
@@ -208,178 +246,262 @@ export function MeetingReportPreview({
   );
 
   return (
-    <div className="bg-white text-black" style={{ fontFamily: "Helvetica, Arial, sans-serif", fontSize: "10px" }}>
-      {/* Cover Page */}
+    <div className="bg-white text-black" style={{ fontFamily: "Arial, Helvetica, sans-serif", fontSize: "10px" }}>
+      {/* ═══════════ COVER PAGE ═══════════ */}
       {pdfSettings?.showCoverPage && (
-        <div
-          style={{
-            width: "210mm",
-            minHeight: "297mm",
-            padding: "40px",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            borderBottom: "3px solid #e5e7eb",
-            marginBottom: "20px",
-            pageBreakAfter: "always",
-          }}
-        >
-          {pdfSettings.logoUrl && (
-            <img
-              src={pdfSettings.logoUrl}
-              alt="Logo"
-              style={{ maxHeight: "120px", maxWidth: "300px", marginBottom: "40px", objectFit: "contain" }}
-            />
-          )}
-          <h1 style={{ fontSize: "28px", fontWeight: "bold", color: headerColor, textAlign: "center", marginBottom: "12px" }}>
-            {pdfSettings.coverTitle || "Compte-rendu de réunion de chantier"}
-          </h1>
-          {pdfSettings.coverSubtitle && (
-            <p style={{ fontSize: "16px", color: "#666", textAlign: "center", marginBottom: "24px" }}>
-              {pdfSettings.coverSubtitle}
-            </p>
-          )}
-          <div style={{ fontSize: "18px", fontWeight: "bold", color: headerColor, marginBottom: "8px" }}>
-            {projectName}
-          </div>
-          <div style={{ fontSize: "14px", color: "#666", marginBottom: "4px" }}>
-            CR n°{report.number}
-          </div>
-          <div style={{ fontSize: "14px", color: "#666" }}>
-            {formatDate(report.date)}
-          </div>
-          {pdfSettings.companyName && (
-            <div style={{ fontSize: "12px", color: "#999", marginTop: "40px" }}>
-              {pdfSettings.companyName}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* A4 Page Content */}
-      <div
-        style={{
+        <div style={{
           width: "210mm",
           minHeight: "297mm",
-          padding: "40px",
-          margin: "0 auto",
+          padding: "30px 40px",
+          display: "flex",
+          flexDirection: "column",
+          borderBottom: "3px solid #e5e7eb",
+          marginBottom: "20px",
+          pageBreakAfter: "always",
           boxSizing: "border-box",
-        }}
-      >
-        {/* Header */}
-        <div style={{ borderBottom: `2px solid ${headerColor}`, paddingBottom: "12px", marginBottom: "20px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            {pdfSettings?.logoUrl && !pdfSettings.showCoverPage && (
+        }}>
+          {/* Top: Logo + Company Info */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "40px" }}>
+            {pdfSettings.logoUrl && (
               <img
                 src={pdfSettings.logoUrl}
                 alt="Logo"
-                style={{ maxHeight: "50px", maxWidth: "120px", objectFit: "contain" }}
+                style={{ maxHeight: "80px", maxWidth: "200px", objectFit: "contain" }}
               />
             )}
-            <div style={{ flex: 1 }}>
-              <h1 style={{ fontSize: "18px", fontWeight: "bold", color: headerColor, margin: 0 }}>
-                Compte-rendu de réunion n°{report.number}
-              </h1>
-              <p style={{ fontSize: "11px", color: "#666", margin: "4px 0 0 0" }}>
-                {projectName}
-              </p>
-            </div>
+            {(companyName || pdfSettings.companyAddress) && (
+              <div style={{ fontSize: "9px", color: "#444", lineHeight: "1.4" }}>
+                {companyName && <div style={{ fontWeight: "bold", fontSize: "11px" }}>{companyName}</div>}
+                {pdfSettings.companyAddress && (
+                  <div style={{ whiteSpace: "pre-line", marginTop: "2px" }}>
+                    {pdfSettings.companyAddress}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", fontSize: "9px", color: "#666" }}>
-            <span>Date : {formatDate(report.date)}</span>
-            {report.location && <span>Lieu : {report.location}</span>}
-            {report.weather && <span>Météo : {report.weather}</span>}
+
+          {/* Center: Title Block */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+            <div style={{
+              border: `3px solid ${headerColor}`,
+              padding: "30px 60px",
+              textAlign: "center",
+              marginBottom: "30px",
+              width: "80%",
+            }}>
+              <div style={{ fontSize: "22px", fontWeight: "bold", color: headerColor, letterSpacing: "1px" }}>
+                {pdfSettings.coverTitle || "COMPTE-RENDU"}
+              </div>
+              <div style={{ fontSize: "18px", fontWeight: "bold", color: headerColor, marginTop: "4px" }}>
+                {pdfSettings.coverSubtitle || "R\u00c9UNION DE CHANTIER"}
+              </div>
+              <div style={{ fontSize: "14px", color: headerColor, marginTop: "12px", fontWeight: "bold" }}>
+                R\u00e9union du {formatDateLong(report.date)}
+              </div>
+            </div>
+
+            {/* Project Info */}
+            <div style={{ textAlign: "center", marginBottom: "20px" }}>
+              <div style={{ fontSize: "16px", fontWeight: "bold", color: "#333", marginBottom: "6px" }}>
+                {projectName}
+              </div>
+              {pdfSettings.projectDescription && (
+                <div style={{ fontSize: "12px", color: "#555", marginBottom: "6px", maxWidth: "400px" }}>
+                  {pdfSettings.projectDescription}
+                </div>
+              )}
+              {pdfSettings.siteAddress && (
+                <div style={{ fontSize: "11px", color: "#666" }}>
+                  {pdfSettings.siteAddress}
+                </div>
+              )}
+            </div>
+
+            <div style={{ fontSize: "14px", color: "#666", marginTop: "8px" }}>
+              CR n&deg;{report.number}
+            </div>
+
+            {/* Site Photo */}
+            {pdfSettings.sitePhotoUrl && (
+              <div style={{ marginTop: "30px" }}>
+                <img
+                  src={pdfSettings.sitePhotoUrl}
+                  alt="Photo du chantier"
+                  style={{
+                    maxHeight: "250px",
+                    maxWidth: "400px",
+                    objectFit: "cover",
+                    borderRadius: "4px",
+                    border: "1px solid #ddd",
+                  }}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Bottom */}
+          <div style={{ textAlign: "center", fontSize: "10px", color: "#999", paddingTop: "20px" }}>
+            &Eacute;dit&eacute; le {new Date().toLocaleDateString("fr-FR")}
           </div>
         </div>
+      )}
 
-        {/* Next meeting */}
-        {report.nextMeetingDate && (
-          <div style={{ backgroundColor: "#eff6ff", padding: "10px", borderRadius: "4px", marginBottom: "16px", fontSize: "10px", color: "#1e40af" }}>
-            Prochaine réunion : {formatDate(report.nextMeetingDate)}
-            {report.nextMeetingTime && ` à ${report.nextMeetingTime}`}
-          </div>
-        )}
+      {/* ═══════════ CONTENT PAGES ═══════════ */}
+      <div style={{
+        width: "210mm",
+        minHeight: "297mm",
+        padding: "25px 35px 50px 35px",
+        margin: "0 auto",
+        boxSizing: "border-box",
+      }}>
+        {/* Page header with logo */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+          {pdfSettings?.logoUrl && (
+            <img
+              src={pdfSettings.logoUrl}
+              alt="Logo"
+              style={{ maxHeight: "40px", maxWidth: "150px", objectFit: "contain" }}
+            />
+          )}
+          <div style={{ flex: 1 }} />
+        </div>
 
-        {/* Attendance table */}
-        <SectionTitle color={headerColor}>Liste de présence</SectionTitle>
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px", fontSize: "9px" }}>
+        {/* ─── Attendance Table ─── */}
+        <SectionBanner color={headerColor}>LISTE DE PR&Eacute;SENCE</SectionBanner>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "16px", fontSize: "9px" }}>
           <thead>
-            <tr style={{ backgroundColor: "#f3f4f6" }}>
-              <th style={thStyle}>Entreprise</th>
-              <th style={thStyle}>Lot</th>
-              <th style={thStyle}>Statut</th>
-              <th style={thStyle}>Représentant</th>
+            <tr>
+              <th style={thStyleBorder}>D&eacute;signation</th>
+              <th style={thStyleBorder}>Soci&eacute;t&eacute;</th>
+              <th style={thStyleBorder}>Nom</th>
+              <th style={{ ...thStyleBorder, width: "55px", textAlign: "center" }}>Pr&eacute;sence</th>
+              <th style={{ ...thStyleBorder, width: "55px", textAlign: "center" }}>Convocation</th>
             </tr>
           </thead>
           <tbody>
-            {report.attendances.map((att, i) => (
-              <tr key={att.id} style={{ backgroundColor: i % 2 === 1 ? "#fafafa" : "transparent" }}>
-                <td style={tdStyle}>{att.company.name}</td>
-                <td style={{ ...tdStyle, color: "#666" }}>
-                  {att.company.lotNumber
-                    ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` — ${att.company.lotLabel}` : ""}`
-                    : "—"}
-                </td>
-                <td style={tdStyle}>
-                  <span className={ATTENDANCE_COLORS[att.status] ?? ""}>
-                    {ATTENDANCE_LABELS[att.status] ?? att.status}
-                  </span>
-                </td>
-                <td style={tdStyle}>{att.representant || "—"}</td>
-              </tr>
-            ))}
+            {report.attendances.map((att) => {
+              const contacts = parseContacts(att.company.contacts);
+              const designation = att.company.lotNumber
+                ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` \u2014 ${att.company.lotLabel}` : ""}`
+                : att.company.lotLabel || "\u2014";
+
+              return (
+                <tr key={att.id}>
+                  <td style={tdStyleBorder}>{designation}</td>
+                  <td style={{ ...tdStyleBorder, fontWeight: "bold" }}>{att.company.name}</td>
+                  <td style={tdStyleBorder}>
+                    {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
+                    {contacts.length > 0 && contacts[0].phone && (
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#666" }}>
+                        {contacts[0].phone}
+                      </span>
+                    )}
+                    {contacts.length > 0 && contacts[0].email && (
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#666" }}>
+                        {contacts[0].email}
+                      </span>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyleBorder, textAlign: "center", fontWeight: "bold" }}>
+                    <span style={{ color: att.status === "present" ? "#16a34a" : att.status === "absent" ? "#dc2626" : "#666" }}>
+                      {ATTENDANCE_LABELS[att.status] ?? att.status}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyleBorder, textAlign: "center", fontSize: "8px" }}>
+                    {att.status !== "non_convoque" ? "Oui" : "Non"}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
 
-        {/* General notes */}
-        <SectionTitle color={headerColor}>Généralités</SectionTitle>
-        <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(report.generalNotes) }} />
+        {/* Attendance legend */}
+        <div style={{ fontSize: "7.5px", color: "#888", marginBottom: "16px", display: "flex", gap: "12px" }}>
+          <span><strong>P</strong> = Pr&eacute;sent</span>
+          <span><strong>A</strong> = Absent</span>
+          <span><strong>E</strong> = Excus&eacute;</span>
+          <span><strong>NC</strong> = Non convoqu&eacute;</span>
+        </div>
 
-        {/* Sections by company */}
+        {/* ─── Next meeting ─── */}
+        {report.nextMeetingDate && (
+          <div style={{
+            border: `2px solid ${headerColor}`,
+            padding: "10px 16px",
+            marginBottom: "16px",
+            textAlign: "center",
+          }}>
+            <span style={{ fontSize: "11px", fontWeight: "bold", color: headerColor }}>
+              PROCHAINE R&Eacute;UNION : {formatDateLong(report.nextMeetingDate).toUpperCase()}
+              {report.nextMeetingTime && ` &Agrave; ${report.nextMeetingTime}`}
+            </span>
+            {report.location && (
+              <span style={{ fontSize: "10px", color: "#666", marginLeft: "12px" }}>
+                &mdash; {report.location}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* ─── Généralités ─── */}
+        <SectionBanner color={headerColor}>G&Eacute;N&Eacute;RALIT&Eacute;S</SectionBanner>
+        <div style={{ marginBottom: "20px" }}>
+          <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(report.generalNotes) }} />
+        </div>
+
+        {/* ─── Company Sections ─── */}
         {report.sections.map((section) => {
           const sectionObs = report.observations.filter(
             (o) => o.companyId === section.company?.id
           );
 
           return (
-            <div key={section.id} style={{ pageBreakInside: "avoid" }}>
-              <SectionTitle color={headerColor}>{section.title}</SectionTitle>
-              <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(section.content) }} />
+            <div key={section.id} style={{ pageBreakInside: "avoid", marginBottom: "20px" }}>
+              {/* Company Section Header */}
+              <CompanySectionHeader section={section} color={headerColor} />
 
-              {sectionObs.length > 0 && (
-                <ObservationsTable
-                  observations={sectionObs}
-                  previousReportNumber={previousReportNumber}
-                />
+              {/* Section rich text content */}
+              {section.content && section.content !== "{}" && (
+                <div style={{ marginBottom: "8px" }}>
+                  <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(section.content) }} />
+                </div>
               )}
+
+              {/* Observations Table grouped by category */}
+              <ObservationsCategoryTable
+                observations={sectionObs}
+                previousReportNumber={previousReportNumber}
+              />
             </div>
           );
         })}
 
-        {/* General observations */}
+        {/* ─── General observations ─── */}
         {generalObs.length > 0 && (
           <div>
-            <SectionTitle color={headerColor}>Observations générales</SectionTitle>
-            <ObservationsTable
+            <SectionBanner color={headerColor}>OBSERVATIONS G&Eacute;N&Eacute;RALES</SectionBanner>
+            <ObservationsCategoryTable
               observations={generalObs}
               previousReportNumber={previousReportNumber}
             />
           </div>
         )}
 
-        {/* Footer */}
+        {/* ─── Footer ─── */}
         <div style={{
           display: "flex",
           justifyContent: "space-between",
           fontSize: "8px",
-          color: "#999",
-          borderTop: "0.5px solid #ddd",
-          paddingTop: "6px",
+          color: "#666",
+          borderTop: "1px solid #ccc",
+          paddingTop: "8px",
           marginTop: "40px",
         }}>
-          <span>{pdfSettings?.footerText || `CR n°${report.number} — ${projectName}`}</span>
-          <span>Édité le {today}</span>
+          <span>{footerLeft}</span>
+          <span>{footerCenter}</span>
+          <span>Page 1</span>
         </div>
       </div>
     </div>
@@ -387,84 +509,221 @@ export function MeetingReportPreview({
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────
-function SectionTitle({ children, color }: { children: React.ReactNode; color: string }) {
+
+function SectionBanner({ children, color }: { children: React.ReactNode; color: string }) {
   return (
-    <h2 style={{
-      fontSize: "13px",
+    <div style={{
+      backgroundColor: color,
+      color: "white",
+      padding: "8px 16px",
+      fontSize: "12px",
       fontWeight: "bold",
-      color,
+      letterSpacing: "0.5px",
+      marginBottom: "10px",
       marginTop: "16px",
-      marginBottom: "8px",
-      paddingBottom: "4px",
-      borderBottom: "1px solid #ddd",
+      textAlign: "center",
     }}>
       {children}
-    </h2>
+    </div>
   );
 }
 
-function ObservationsTable({
+function CompanySectionHeader({ section, color }: { section: Section; color: string }) {
+  const company = section.company;
+  if (!company) {
+    return <SectionBanner color={color}>{section.title}</SectionBanner>;
+  }
+
+  const lotLine = company.lotNumber ? `LOT n\u00b0 ${company.lotNumber}` : null;
+  const lotLabel = company.lotLabel || "";
+  const companyName = company.name;
+
+  return (
+    <div style={{
+      border: `2px solid ${color}`,
+      padding: "12px 20px",
+      textAlign: "center",
+      marginBottom: "10px",
+      marginTop: "20px",
+      pageBreakInside: "avoid",
+    }}>
+      {lotLine && (
+        <div style={{ fontSize: "14px", fontWeight: "bold", color: "#333" }}>
+          {lotLine}
+        </div>
+      )}
+      {lotLabel && (
+        <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>
+          {lotLabel}
+        </div>
+      )}
+      <div style={{ fontSize: "13px", fontWeight: "bold", color: "#333" }}>
+        {companyName}
+      </div>
+    </div>
+  );
+}
+
+function ObservationsCategoryTable({
   observations,
   previousReportNumber,
 }: {
   observations: Observation[];
   previousReportNumber: number | null;
 }) {
+  // Group observations by category
+  const obsByCategory: Record<string, Observation[]> = {};
+  for (const cat of CATEGORY_ORDER) {
+    obsByCategory[cat] = [];
+  }
+  obsByCategory["_other"] = [];
+
+  for (const obs of observations) {
+    const cat = obs.category && CATEGORY_ORDER.includes(obs.category) ? obs.category : "_other";
+    obsByCategory[cat].push(obs);
+  }
+
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "6px", marginBottom: "12px", fontSize: "9px" }}>
-      <thead>
-        <tr style={{ backgroundColor: "#f3f4f6" }}>
-          <th style={{ ...thStyle, textAlign: "left" }}>Observation</th>
-          <th style={{ ...thStyle, width: "70px" }}>Pour le</th>
-          <th style={{ ...thStyle, width: "70px" }}>Fait le</th>
-          <th style={{ ...thStyle, width: "60px" }}>Statut</th>
-        </tr>
-      </thead>
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "12px" }}>
       <tbody>
-        {observations.map((obs) => {
-          const sc = STATUS_COLORS[obs.status] ?? { bg: "bg-gray-100", text: "text-gray-700" };
-          return (
-            <tr key={obs.id} style={{ borderBottom: "0.5px solid #eee" }}>
-              <td style={{ ...tdStyle, textAlign: "left" }}>
-                {obs.description}
-                {obs.sourceObservationId && previousReportNumber && (
-                  <span style={{ fontSize: "7px", color: "#ea580c", marginLeft: "4px" }}>
-                    (CR n°{previousReportNumber})
-                  </span>
-                )}
-              </td>
-              <td style={{ ...tdStyle, textAlign: "center", color: "#666" }}>
-                {obs.dueDate ? formatDateShort(obs.dueDate) : "—"}
-              </td>
-              <td style={{ ...tdStyle, textAlign: "center", color: "#666" }}>
-                {obs.doneDate ? formatDateShort(obs.doneDate) : "—"}
-              </td>
-              <td style={{ ...tdStyle, textAlign: "center" }}>
-                <span className={`inline-block px-1.5 py-0.5 rounded text-[8px] ${sc.bg} ${sc.text}`}>
-                  {STATUS_LABELS[obs.status] ?? obs.status}
-                </span>
-              </td>
-            </tr>
-          );
-        })}
+        {CATEGORY_ORDER.map((cat, idx) => (
+          <CategoryRows
+            key={cat}
+            index={idx + 1}
+            label={CATEGORY_LABELS[cat]}
+            observations={obsByCategory[cat]}
+            previousReportNumber={previousReportNumber}
+          />
+        ))}
+        {obsByCategory["_other"].length > 0 && (
+          <CategoryRows
+            index={6}
+            label="DIVERS"
+            observations={obsByCategory["_other"]}
+            previousReportNumber={previousReportNumber}
+          />
+        )}
       </tbody>
     </table>
   );
 }
 
+function CategoryRows({
+  index,
+  label,
+  observations,
+  previousReportNumber,
+}: {
+  index: number;
+  label: string;
+  observations: Observation[];
+  previousReportNumber: number | null;
+}) {
+  return (
+    <>
+      {/* Category header row */}
+      <tr>
+        <td style={{
+          ...tdStyleBorder,
+          fontWeight: "bold",
+          fontSize: "9px",
+          backgroundColor: "#f0f0f0",
+          width: "60%",
+          padding: "5px 8px",
+        }}>
+          {index}. {label}
+        </td>
+        <td style={{
+          ...tdStyleBorder,
+          width: "20%",
+          textAlign: "center",
+          fontSize: "8px",
+          fontWeight: "bold",
+          backgroundColor: "#f0f0f0",
+          padding: "5px 4px",
+        }}>
+          Pour le :
+        </td>
+        <td style={{
+          ...tdStyleBorder,
+          width: "20%",
+          textAlign: "center",
+          fontSize: "8px",
+          fontWeight: "bold",
+          backgroundColor: "#f0f0f0",
+          padding: "5px 4px",
+        }}>
+          Fait le :
+        </td>
+      </tr>
+      {/* Observation rows */}
+      {observations.map((obs) => {
+        const statusColor = STATUS_COLORS[obs.status] ?? "#333";
+        const isRetardOrUrgent = obs.status === "retard" || obs.status === "urgent";
+        return (
+          <tr key={obs.id}>
+            <td style={{
+              ...tdStyleBorder,
+              padding: "4px 8px 4px 20px",
+              color: isRetardOrUrgent ? "#dc2626" : "#333",
+              fontStyle: isRetardOrUrgent ? "italic" : "normal",
+            }}>
+              {obs.description}
+              {obs.sourceObservationId && previousReportNumber && (
+                <span style={{ fontSize: "7px", color: "#ea580c", marginLeft: "4px" }}>
+                  (CR n&deg;{previousReportNumber})
+                </span>
+              )}
+            </td>
+            <td style={{
+              ...tdStyleBorder,
+              textAlign: "center",
+              fontSize: "8px",
+              color: isRetardOrUrgent ? "#dc2626" : "#666",
+            }}>
+              {obs.dueDate ? formatDate(obs.dueDate) : ""}
+            </td>
+            <td style={{
+              ...tdStyleBorder,
+              textAlign: "center",
+              fontSize: "8px",
+              fontWeight: isRetardOrUrgent ? "bold" : "normal",
+              color: statusColor,
+            }}>
+              {obs.status === "fait" && obs.doneDate
+                ? formatDate(obs.doneDate)
+                : STATUS_LABELS[obs.status] ?? ""}
+            </td>
+          </tr>
+        );
+      })}
+      {/* Empty row if no observations */}
+      {observations.length === 0 && (
+        <tr>
+          <td style={{ ...tdStyleBorder, padding: "4px 8px 4px 20px", color: "#ccc" }}>&nbsp;</td>
+          <td style={{ ...tdStyleBorder, textAlign: "center" }}>&nbsp;</td>
+          <td style={{ ...tdStyleBorder, textAlign: "center" }}>&nbsp;</td>
+        </tr>
+      )}
+    </>
+  );
+}
+
 // ─── Styles ─────────────────────────────────────────────────────────
-const thStyle: React.CSSProperties = {
+const thStyleBorder: React.CSSProperties = {
   fontSize: "8px",
   fontWeight: "bold",
-  color: "#666",
+  color: "#333",
   textTransform: "uppercase",
-  padding: "5px 6px",
-  borderBottom: "1px solid #ddd",
+  padding: "6px 8px",
+  border: "1px solid #333",
   textAlign: "left",
+  backgroundColor: "#f0f0f0",
 };
 
-const tdStyle: React.CSSProperties = {
-  padding: "4px 6px",
-  borderBottom: "0.5px solid #eee",
+const tdStyleBorder: React.CSSProperties = {
+  padding: "4px 8px",
+  border: "1px solid #999",
   verticalAlign: "top",
+  fontSize: "9px",
 };

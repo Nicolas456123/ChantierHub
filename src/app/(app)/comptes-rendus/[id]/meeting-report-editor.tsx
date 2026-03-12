@@ -51,6 +51,7 @@ interface Company {
   name: string;
   lotNumber: string | null;
   lotLabel: string | null;
+  contacts?: string;
 }
 
 interface Attendance {
@@ -109,11 +110,15 @@ interface MeetingTemplate {
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
+  companyAddress?: string;
   headerColor?: string;
   showCoverPage?: boolean;
   coverTitle?: string;
   coverSubtitle?: string;
   footerText?: string;
+  sitePhotoUrl?: string;
+  siteAddress?: string;
+  projectDescription?: string;
 }
 
 interface Props {

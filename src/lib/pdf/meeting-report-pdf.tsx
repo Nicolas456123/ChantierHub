@@ -9,6 +9,7 @@ interface Company {
   name: string;
   lotNumber: string | null;
   lotLabel: string | null;
+  contacts?: string;
 }
 
 interface Attendance {
@@ -52,11 +53,15 @@ interface MeetingReportData {
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
+  companyAddress?: string;
   headerColor?: string;
   showCoverPage?: boolean;
   coverTitle?: string;
   coverSubtitle?: string;
   footerText?: string;
+  sitePhotoUrl?: string;
+  siteAddress?: string;
+  projectDescription?: string;
 }
 
 interface Props {
@@ -69,6 +74,14 @@ interface Props {
 // ─── Helpers ────────────────────────────────────────────────────────
 function formatDate(date: string): string {
   return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatDateLong(date: string): string {
+  return new Date(date).toLocaleDateString("fr-FR", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -76,30 +89,60 @@ function formatDate(date: string): string {
   });
 }
 
-function formatDateShort(date: string): string {
-  return new Date(date).toLocaleDateString("fr-FR");
-}
-
 const STATUS_LABELS: Record<string, string> = {
-  en_cours: "En cours",
-  fait: "Fait",
-  retard: "Retard",
-  urgent: "Urgent",
+  en_cours: "EN COURS",
+  fait: "FAIT",
+  retard: "RETARD",
+  urgent: "URGENT",
 };
 
-const STATUS_COLORS: Record<string, { bg: string; color: string }> = {
-  en_cours: { bg: "#dbeafe", color: "#1d4ed8" },
-  fait: { bg: "#dcfce7", color: "#16a34a" },
-  retard: { bg: "#fee2e2", color: "#dc2626" },
-  urgent: { bg: "#ffedd5", color: "#ea580c" },
+const STATUS_COLORS: Record<string, string> = {
+  en_cours: "#1d4ed8",
+  fait: "#16a34a",
+  retard: "#dc2626",
+  urgent: "#ea580c",
 };
 
 const ATTENDANCE_LABELS: Record<string, string> = {
-  present: "Présent",
-  absent: "Absent",
-  excuse: "Excusé",
-  non_convoque: "Non convoqué",
+  present: "P",
+  absent: "A",
+  excuse: "E",
+  non_convoque: "NC",
 };
+
+const ATTENDANCE_COLORS: Record<string, string> = {
+  present: "#16a34a",
+  absent: "#dc2626",
+  excuse: "#666",
+  non_convoque: "#999",
+};
+
+const CATEGORY_LABELS: Record<string, string> = {
+  administratif: "ADMINISTRATIF",
+  etudes: "\u00c9TUDES",
+  controle: "BUREAU DE CONTR\u00d4LE",
+  avancement: "Point effectif / avancement / pr\u00e9visions",
+  visite: "Visite de chantier et d\u00e9tails d\u2019ex\u00e9cution",
+};
+
+const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
+
+interface Contact {
+  name: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+}
+
+function parseContacts(contactsJson?: string): Contact[] {
+  if (!contactsJson) return [];
+  try {
+    const parsed = JSON.parse(contactsJson);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 // ─── PDF Document ───────────────────────────────────────────────────
 export function MeetingReportPDF({
@@ -108,135 +151,163 @@ export function MeetingReportPDF({
   previousReportNumber,
   pdfSettings,
 }: Props) {
-  const today = new Date().toLocaleDateString("fr-FR");
   const headerColor = pdfSettings?.headerColor || "#1e3a5f";
-  const footerText = pdfSettings?.footerText || `CR n°${report.number} — ${projectName}`;
+  const companyName = pdfSettings?.companyName || "";
+  const crDate = formatDate(report.date);
+  const footerLeft = pdfSettings?.footerText || companyName || projectName;
+  const footerCenter = `CR du ${crDate}`;
+
+  const generalObs = report.observations.filter((o) => !o.companyId);
 
   return (
     <Document>
-      {/* Cover Page */}
+      {/* ═══════════ COVER PAGE ═══════════ */}
       {pdfSettings?.showCoverPage && (
-        <Page size="A4" style={[styles.page, { justifyContent: "center", alignItems: "center" }]}>
-          {pdfSettings.logoUrl && (
-            <Image
-              src={pdfSettings.logoUrl}
-              style={{ maxHeight: 100, maxWidth: 250, marginBottom: 40, objectFit: "contain" }}
-            />
-          )}
-          <Text style={{ fontSize: 24, fontFamily: "Helvetica-Bold", color: headerColor, textAlign: "center", marginBottom: 10 }}>
-            {pdfSettings.coverTitle || "Compte-rendu de réunion de chantier"}
-          </Text>
-          {pdfSettings.coverSubtitle && (
-            <Text style={{ fontSize: 14, color: "#666", textAlign: "center", marginBottom: 20 }}>
-              {pdfSettings.coverSubtitle}
-            </Text>
-          )}
-          <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: headerColor, marginBottom: 6 }}>
-            {projectName}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#666", marginBottom: 4 }}>
-            CR n°{report.number}
-          </Text>
-          <Text style={{ fontSize: 12, color: "#666" }}>
-            {formatDate(report.date)}
-          </Text>
-          {pdfSettings.companyName && (
-            <Text style={{ fontSize: 10, color: "#999", marginTop: 40 }}>
-              {pdfSettings.companyName}
-            </Text>
-          )}
+        <Page size="A4" style={styles.coverPage}>
+          {/* Top: Logo + Company Info */}
+          <View style={styles.coverTop}>
+            {pdfSettings.logoUrl && (
+              <Image
+                src={pdfSettings.logoUrl}
+                style={{ maxHeight: 70, maxWidth: 180, objectFit: "contain" as const }}
+              />
+            )}
+            {(companyName || pdfSettings.companyAddress) && (
+              <View style={styles.coverCompanyInfo}>
+                {companyName ? (
+                  <Text style={styles.coverCompanyName}>{companyName}</Text>
+                ) : null}
+                {pdfSettings.companyAddress ? (
+                  <Text style={{ marginTop: 2 }}>{pdfSettings.companyAddress}</Text>
+                ) : null}
+              </View>
+            )}
+          </View>
+
+          {/* Center content */}
+          <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+            {/* Title Box */}
+            <View style={[styles.coverTitleBox, { borderColor: headerColor }]}>
+              <Text style={[styles.coverTitle, { color: headerColor }]}>
+                {pdfSettings.coverTitle || "COMPTE-RENDU"}
+              </Text>
+              <Text style={[styles.coverSubtitle, { color: headerColor }]}>
+                {pdfSettings.coverSubtitle || "R\u00c9UNION DE CHANTIER"}
+              </Text>
+              <Text style={[styles.coverDate, { color: headerColor }]}>
+                R\u00e9union du {formatDateLong(report.date)}
+              </Text>
+            </View>
+
+            {/* Project Info */}
+            <Text style={styles.coverProjectName}>{projectName}</Text>
+            {pdfSettings.projectDescription ? (
+              <Text style={styles.coverProjectDesc}>{pdfSettings.projectDescription}</Text>
+            ) : null}
+            {pdfSettings.siteAddress ? (
+              <Text style={styles.coverSiteAddress}>{pdfSettings.siteAddress}</Text>
+            ) : null}
+            <Text style={styles.coverCrNumber}>CR n\u00b0{report.number}</Text>
+
+            {/* Site Photo */}
+            {pdfSettings.sitePhotoUrl ? (
+              <Image
+                src={pdfSettings.sitePhotoUrl}
+                style={{
+                  marginTop: 25,
+                  maxHeight: 200,
+                  maxWidth: 350,
+                  objectFit: "cover" as const,
+                }}
+              />
+            ) : null}
+          </View>
         </Page>
       )}
 
-      <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={[styles.header, { borderBottomColor: headerColor }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            {pdfSettings?.logoUrl && !pdfSettings.showCoverPage && (
-              <Image
-                src={pdfSettings.logoUrl}
-                style={{ maxHeight: 40, maxWidth: 100, objectFit: "contain" }}
-              />
-            )}
-            <View style={{ flex: 1 }}>
-              <Text style={[styles.headerTitle, { color: headerColor }]}>
-                Compte-rendu de réunion n°{report.number}
-              </Text>
-              <Text style={styles.headerSubtitle}>{projectName}</Text>
-            </View>
+      {/* ═══════════ CONTENT PAGES ═══════════ */}
+      <Page size="A4" style={styles.page} wrap>
+        {/* Page header with logo (fixed on every page) */}
+        {pdfSettings?.logoUrl && (
+          <View style={styles.pageHeader} fixed>
+            <Image src={pdfSettings.logoUrl} style={styles.headerLogo} />
           </View>
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerInfoItem}>
-              Date : {formatDate(report.date)}
-            </Text>
-            {report.location && (
-              <Text style={styles.headerInfoItem}>
-                Lieu : {report.location}
-              </Text>
-            )}
-            {report.weather && (
-              <Text style={styles.headerInfoItem}>
-                Météo : {report.weather}
-              </Text>
-            )}
-          </View>
+        )}
+
+        {/* ─── Attendance ─── */}
+        <View style={[styles.sectionBanner, { backgroundColor: headerColor }]}>
+          <Text style={styles.sectionBannerText}>LISTE DE PR\u00c9SENCE</Text>
         </View>
 
-        {/* Next meeting */}
+        {/* Attendance table header */}
+        <View style={styles.tableHeader}>
+          <Text style={[styles.tableHeaderCell, { width: "22%" }]}>D\u00e9signation</Text>
+          <Text style={[styles.tableHeaderCell, { width: "20%" }]}>Soci\u00e9t\u00e9</Text>
+          <Text style={[styles.tableHeaderCell, { width: "28%" }]}>Nom</Text>
+          <Text style={[styles.tableHeaderCell, { width: "15%", textAlign: "center" }]}>Pr\u00e9sence</Text>
+          <Text style={[styles.tableHeaderCell, { width: "15%", textAlign: "center" }]}>Convocation</Text>
+        </View>
+
+        {/* Attendance rows */}
+        {report.attendances.map((att, i) => {
+          const contacts = parseContacts(att.company.contacts);
+          const designation = att.company.lotNumber
+            ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` \u2014 ${att.company.lotLabel}` : ""}`
+            : att.company.lotLabel || "\u2014";
+
+          return (
+            <View key={i} style={styles.tableRow}>
+              <Text style={[styles.tableCell, { width: "22%" }]}>{designation}</Text>
+              <Text style={[styles.tableCell, { width: "20%", fontFamily: "Helvetica-Bold" }]}>{att.company.name}</Text>
+              <View style={[styles.tableCell, { width: "28%" }]}>
+                <Text style={{ fontSize: 9 }}>
+                  {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
+                </Text>
+                {contacts.length > 0 && contacts[0].phone ? (
+                  <Text style={{ fontSize: 7, color: "#666" }}>{contacts[0].phone}</Text>
+                ) : null}
+                {contacts.length > 0 && contacts[0].email ? (
+                  <Text style={{ fontSize: 7, color: "#666" }}>{contacts[0].email}</Text>
+                ) : null}
+              </View>
+              <Text style={[styles.tableCell, { width: "15%", textAlign: "center", fontFamily: "Helvetica-Bold", color: ATTENDANCE_COLORS[att.status] ?? "#333" }]}>
+                {ATTENDANCE_LABELS[att.status] ?? att.status}
+              </Text>
+              <Text style={[styles.tableCell, { width: "15%", textAlign: "center", fontSize: 8 }]}>
+                {att.status !== "non_convoque" ? "Oui" : "Non"}
+              </Text>
+            </View>
+          );
+        })}
+
+        {/* Attendance legend */}
+        <View style={styles.legend}>
+          <Text style={styles.legendItem}><Text style={{ fontFamily: "Helvetica-Bold" }}>P</Text> = Pr\u00e9sent</Text>
+          <Text style={styles.legendItem}><Text style={{ fontFamily: "Helvetica-Bold" }}>A</Text> = Absent</Text>
+          <Text style={styles.legendItem}><Text style={{ fontFamily: "Helvetica-Bold" }}>E</Text> = Excus\u00e9</Text>
+          <Text style={styles.legendItem}><Text style={{ fontFamily: "Helvetica-Bold" }}>NC</Text> = Non convoqu\u00e9</Text>
+        </View>
+
+        {/* ─── Next meeting ─── */}
         {report.nextMeetingDate && (
-          <View style={styles.nextMeeting}>
-            <Text style={styles.nextMeetingText}>
-              Prochaine réunion : {formatDate(report.nextMeetingDate)}
-              {report.nextMeetingTime && ` à ${report.nextMeetingTime}`}
+          <View style={[styles.nextMeeting, { borderColor: headerColor }]}>
+            <Text style={[styles.nextMeetingText, { color: headerColor }]}>
+              PROCHAINE R\u00c9UNION : {formatDateLong(report.nextMeetingDate).toUpperCase()}
+              {report.nextMeetingTime && ` \u00c0 ${report.nextMeetingTime}`}
+              {report.location && `  \u2014  ${report.location}`}
             </Text>
           </View>
         )}
 
-        {/* Attendance table */}
-        <Text style={styles.sectionTitle}>Liste de présence</Text>
-        <View style={styles.table}>
-          <View style={styles.tableHeader}>
-            <Text style={[styles.tableHeaderCell, { width: "25%" }]}>
-              Entreprise
-            </Text>
-            <Text style={[styles.tableHeaderCell, { width: "20%" }]}>Lot</Text>
-            <Text style={[styles.tableHeaderCell, { width: "20%" }]}>
-              Statut
-            </Text>
-            <Text style={[styles.tableHeaderCell, { width: "35%" }]}>
-              Représentant
-            </Text>
-          </View>
-          {report.attendances.map((att, i) => (
-            <View
-              key={i}
-              style={[styles.tableRow, i % 2 === 1 ? styles.tableRowAlt : {}]}
-            >
-              <Text style={[styles.tableCell, { width: "25%" }]}>
-                {att.company.name}
-              </Text>
-              <Text style={[styles.tableCell, { width: "20%", color: "#666" }]}>
-                {att.company.lotNumber
-                  ? `Lot ${att.company.lotNumber}${
-                      att.company.lotLabel ? ` — ${att.company.lotLabel}` : ""
-                    }`
-                  : "—"}
-              </Text>
-              <Text style={[styles.tableCell, { width: "20%" }]}>
-                {ATTENDANCE_LABELS[att.status] ?? att.status}
-              </Text>
-              <Text style={[styles.tableCell, { width: "35%" }]}>
-                {att.representant || "—"}
-              </Text>
-            </View>
-          ))}
+        {/* ─── Généralités ─── */}
+        <View style={[styles.sectionBanner, { backgroundColor: headerColor }]}>
+          <Text style={styles.sectionBannerText}>G\u00c9N\u00c9RALIT\u00c9S</Text>
+        </View>
+        <View style={{ marginBottom: 16 }}>
+          {renderTiptapContent(report.generalNotes)}
         </View>
 
-        {/* General notes */}
-        <Text style={styles.sectionTitle}>Généralités</Text>
-        {renderTiptapContent(report.generalNotes)}
-
-        {/* Sections by company */}
+        {/* ─── Company Sections ─── */}
         {report.sections.map((section) => {
           const sectionObs = report.observations.filter(
             (o) => o.companyId === section.company?.id
@@ -244,133 +315,167 @@ export function MeetingReportPDF({
 
           return (
             <View key={section.id} wrap={false}>
-              <Text style={styles.sectionTitle}>{section.title}</Text>
-              {renderTiptapContent(section.content)}
-
-              {sectionObs.length > 0 && (
-                <View style={[styles.table, { marginTop: 6 }]}>
-                  <View style={styles.tableHeader}>
-                    <Text
-                      style={[styles.tableHeaderCell, { flex: 1 }]}
-                    >
-                      Observation
-                    </Text>
-                    <Text style={[styles.tableHeaderCell, { width: 70 }]}>
-                      Pour le
-                    </Text>
-                    <Text style={[styles.tableHeaderCell, { width: 70 }]}>
-                      Fait le
-                    </Text>
-                    <Text style={[styles.tableHeaderCell, { width: 55 }]}>
-                      Statut
-                    </Text>
-                  </View>
-                  {sectionObs.map((obs, j) => {
-                    const sc = STATUS_COLORS[obs.status] ?? {
-                      bg: "#f3f4f6",
-                      color: "#333",
-                    };
-                    return (
-                      <View key={j} style={styles.obsRow}>
-                        <View style={[styles.obsDescription, { flexDirection: "row", alignItems: "center" }]}>
-                          <Text style={{ fontSize: 9 }}>
-                            {obs.description}
-                          </Text>
-                          {obs.sourceObservationId && previousReportNumber && (
-                            <Text style={styles.obsBadge}>
-                              {" "}
-                              (CR n°{previousReportNumber})
-                            </Text>
-                          )}
-                        </View>
-                        <Text style={styles.obsDate}>
-                          {obs.dueDate ? formatDateShort(obs.dueDate) : "—"}
-                        </Text>
-                        <Text style={styles.obsDate}>
-                          {obs.doneDate ? formatDateShort(obs.doneDate) : "—"}
-                        </Text>
-                        <Text
-                          style={[
-                            styles.obsStatus,
-                            { backgroundColor: sc.bg, color: sc.color },
-                          ]}
-                        >
-                          {STATUS_LABELS[obs.status] ?? obs.status}
-                        </Text>
-                      </View>
-                    );
-                  })}
+              <CompanySectionHeaderPdf section={section} color={headerColor} />
+              {section.content && section.content !== "{}" && (
+                <View style={{ marginBottom: 6 }}>
+                  {renderTiptapContent(section.content)}
                 </View>
               )}
+              <ObservationsCategoryTablePdf
+                observations={sectionObs}
+                previousReportNumber={previousReportNumber}
+              />
             </View>
           );
         })}
 
-        {/* General observations (without company) */}
-        {(() => {
-          const generalObs = report.observations.filter((o) => !o.companyId);
-          if (generalObs.length === 0) return null;
-          return (
-            <View>
-              <Text style={styles.sectionTitle}>Observations générales</Text>
-              <View style={styles.table}>
-                <View style={styles.tableHeader}>
-                  <Text style={[styles.tableHeaderCell, { flex: 1 }]}>
-                    Observation
-                  </Text>
-                  <Text style={[styles.tableHeaderCell, { width: 70 }]}>
-                    Pour le
-                  </Text>
-                  <Text style={[styles.tableHeaderCell, { width: 70 }]}>
-                    Fait le
-                  </Text>
-                  <Text style={[styles.tableHeaderCell, { width: 55 }]}>
-                    Statut
-                  </Text>
-                </View>
-                {generalObs.map((obs, j) => {
-                  const sc = STATUS_COLORS[obs.status] ?? {
-                    bg: "#f3f4f6",
-                    color: "#333",
-                  };
-                  return (
-                    <View key={j} style={styles.obsRow}>
-                      <Text style={styles.obsDescription}>
-                        {obs.description}
-                      </Text>
-                      <Text style={styles.obsDate}>
-                        {obs.dueDate ? formatDateShort(obs.dueDate) : "—"}
-                      </Text>
-                      <Text style={styles.obsDate}>
-                        {obs.doneDate ? formatDateShort(obs.doneDate) : "—"}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.obsStatus,
-                          { backgroundColor: sc.bg, color: sc.color },
-                        ]}
-                      >
-                        {STATUS_LABELS[obs.status] ?? obs.status}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
+        {/* ─── General observations ─── */}
+        {generalObs.length > 0 && (
+          <View>
+            <View style={[styles.sectionBanner, { backgroundColor: headerColor }]}>
+              <Text style={styles.sectionBannerText}>OBSERVATIONS G\u00c9N\u00c9RALES</Text>
             </View>
-          );
-        })()}
+            <ObservationsCategoryTablePdf
+              observations={generalObs}
+              previousReportNumber={previousReportNumber}
+            />
+          </View>
+        )}
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>{footerText}</Text>
-          <Text>Édité le {today}</Text>
-          <Text
-            render={({ pageNumber, totalPages }) =>
-              `Page ${pageNumber} / ${totalPages}`
-            }
-          />
+          <Text>{footerLeft}</Text>
+          <Text>{footerCenter}</Text>
+          <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
     </Document>
+  );
+}
+
+// ─── Sub-components ─────────────────────────────────────────────────
+
+function CompanySectionHeaderPdf({ section, color }: { section: Section; color: string }) {
+  const company = section.company;
+  if (!company) {
+    return (
+      <View style={[styles.sectionBanner, { backgroundColor: color }]}>
+        <Text style={styles.sectionBannerText}>{section.title}</Text>
+      </View>
+    );
+  }
+
+  const lotLine = company.lotNumber ? `LOT n\u00b0 ${company.lotNumber}` : null;
+  const lotLabel = company.lotLabel || "";
+
+  return (
+    <View style={[styles.companySectionHeader, { borderColor: color }]}>
+      {lotLine ? <Text style={styles.companySectionTitle}>{lotLine}</Text> : null}
+      {lotLabel ? <Text style={styles.companySectionTitle}>{lotLabel}</Text> : null}
+      <Text style={styles.companySectionTitle}>{company.name}</Text>
+    </View>
+  );
+}
+
+function ObservationsCategoryTablePdf({
+  observations,
+  previousReportNumber,
+}: {
+  observations: Observation[];
+  previousReportNumber: number | null;
+}) {
+  const obsByCategory: Record<string, Observation[]> = {};
+  for (const cat of CATEGORY_ORDER) obsByCategory[cat] = [];
+  obsByCategory["_other"] = [];
+
+  for (const obs of observations) {
+    const cat = obs.category && CATEGORY_ORDER.includes(obs.category) ? obs.category : "_other";
+    obsByCategory[cat].push(obs);
+  }
+
+  return (
+    <View style={{ marginBottom: 10 }}>
+      {CATEGORY_ORDER.map((cat, idx) => (
+        <CategoryRowsPdf
+          key={cat}
+          index={idx + 1}
+          label={CATEGORY_LABELS[cat]}
+          observations={obsByCategory[cat]}
+          previousReportNumber={previousReportNumber}
+        />
+      ))}
+      {obsByCategory["_other"].length > 0 && (
+        <CategoryRowsPdf
+          index={6}
+          label="DIVERS"
+          observations={obsByCategory["_other"]}
+          previousReportNumber={previousReportNumber}
+        />
+      )}
+    </View>
+  );
+}
+
+function CategoryRowsPdf({
+  index,
+  label,
+  observations,
+  previousReportNumber,
+}: {
+  index: number;
+  label: string;
+  observations: Observation[];
+  previousReportNumber: number | null;
+}) {
+  return (
+    <View>
+      {/* Category header row */}
+      <View style={styles.catRow}>
+        <Text style={[styles.catLabel, { width: "60%" }]}>
+          {index}. {label}
+        </Text>
+        <Text style={[styles.catHeader, { width: "20%" }]}>Pour le :</Text>
+        <Text style={[styles.catHeader, { width: "20%" }]}>Fait le :</Text>
+      </View>
+
+      {/* Observation rows */}
+      {observations.map((obs, j) => {
+        const statusColor = STATUS_COLORS[obs.status] ?? "#333";
+        const isRetardOrUrgent = obs.status === "retard" || obs.status === "urgent";
+
+        return (
+          <View key={j} style={styles.obsRow}>
+            <View style={[styles.obsDescription, { color: isRetardOrUrgent ? "#dc2626" : "#333" }]}>
+              <Text style={{ fontStyle: isRetardOrUrgent ? "italic" : "normal" }}>
+                {obs.description}
+                {obs.sourceObservationId && previousReportNumber && (
+                  <Text style={styles.obsBadge}> (CR n\u00b0{previousReportNumber})</Text>
+                )}
+              </Text>
+            </View>
+            <Text style={[styles.obsDate, { color: isRetardOrUrgent ? "#dc2626" : "#666" }]}>
+              {obs.dueDate ? formatDate(obs.dueDate) : ""}
+            </Text>
+            <Text style={[styles.obsStatus, {
+              fontFamily: isRetardOrUrgent ? "Helvetica-Bold" : "Helvetica",
+              color: statusColor,
+            }]}>
+              {obs.status === "fait" && obs.doneDate
+                ? formatDate(obs.doneDate)
+                : STATUS_LABELS[obs.status] ?? ""}
+            </Text>
+          </View>
+        );
+      })}
+
+      {/* Empty row */}
+      {observations.length === 0 && (
+        <View style={styles.obsRow}>
+          <Text style={[styles.obsEmpty, { flex: 1 }]}> </Text>
+          <Text style={styles.obsDate}> </Text>
+          <Text style={styles.obsStatus}> </Text>
+        </View>
+      )}
+    </View>
   );
 }

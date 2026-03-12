@@ -36,11 +36,15 @@ export async function PUT(request: NextRequest) {
     const settings = {
       logoUrl: typeof body.logoUrl === "string" ? body.logoUrl : undefined,
       companyName: typeof body.companyName === "string" ? body.companyName : undefined,
+      companyAddress: typeof body.companyAddress === "string" ? body.companyAddress : undefined,
       headerColor: typeof body.headerColor === "string" ? body.headerColor : undefined,
       showCoverPage: typeof body.showCoverPage === "boolean" ? body.showCoverPage : false,
       coverTitle: typeof body.coverTitle === "string" ? body.coverTitle : undefined,
       coverSubtitle: typeof body.coverSubtitle === "string" ? body.coverSubtitle : undefined,
       footerText: typeof body.footerText === "string" ? body.footerText : undefined,
+      sitePhotoUrl: typeof body.sitePhotoUrl === "string" ? body.sitePhotoUrl : undefined,
+      siteAddress: typeof body.siteAddress === "string" ? body.siteAddress : undefined,
+      projectDescription: typeof body.projectDescription === "string" ? body.projectDescription : undefined,
     };
 
     // Clean undefined keys

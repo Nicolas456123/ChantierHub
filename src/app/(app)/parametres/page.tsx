@@ -57,11 +57,15 @@ interface Company {
 interface PdfSettings {
   logoUrl?: string;
   companyName?: string;
+  companyAddress?: string;
   headerColor?: string;
   showCoverPage?: boolean;
   coverTitle?: string;
   coverSubtitle?: string;
   footerText?: string;
+  sitePhotoUrl?: string;
+  siteAddress?: string;
+  projectDescription?: string;
 }
 
 // ─── Tabs ───────────────────────────────────────────────────────────
@@ -493,7 +497,24 @@ function PdfSettingsTab() {
                 placeholder="Ex: Cabinet d'architecture XYZ"
               />
               <p className="text-xs text-muted-foreground mt-1">
-                Affiché sur la page de couverture
+                Affiché sur la page de couverture et en pied de page
+              </p>
+            </div>
+            <div>
+              <Label className="mb-1.5 block text-sm">
+                Adresse de l&apos;entreprise
+              </Label>
+              <Textarea
+                value={settings.companyAddress ?? ""}
+                onChange={(e) =>
+                  setSettings((prev) => ({ ...prev, companyAddress: e.target.value }))
+                }
+                placeholder="Ex: 12 rue de la Paix&#10;75001 Paris&#10;Tél: 01 23 45 67 89"
+                rows={3}
+                className="resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                Affiché sous le logo sur la page de couverture
               </p>
             </div>
             <div>
@@ -593,6 +614,102 @@ function PdfSettingsTab() {
                     }
                     placeholder="Ex: Phase DCE — Suivi hebdomadaire"
                   />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-sm">
+                    Description du projet
+                  </Label>
+                  <Textarea
+                    value={settings.projectDescription ?? ""}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        projectDescription: e.target.value,
+                      }))
+                    }
+                    placeholder="Ex: Construction d'un bâtiment de 20 logements collectifs"
+                    rows={2}
+                    className="resize-none"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-sm">
+                    Adresse du chantier
+                  </Label>
+                  <Input
+                    value={settings.siteAddress ?? ""}
+                    onChange={(e) =>
+                      setSettings((prev) => ({
+                        ...prev,
+                        siteAddress: e.target.value,
+                      }))
+                    }
+                    placeholder="Ex: 45 avenue Victor Hugo, 33000 Bordeaux"
+                  />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block text-sm">
+                    Photo du chantier
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Image affichée sur la page de couverture (max 1 Mo)
+                  </p>
+                  <div className="flex items-center gap-4">
+                    {settings.sitePhotoUrl ? (
+                      <div className="relative group">
+                        <img
+                          src={settings.sitePhotoUrl}
+                          alt="Photo du chantier"
+                          className="h-32 max-w-[300px] object-cover border rounded"
+                        />
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          className="absolute -top-2 -right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() =>
+                            setSettings((prev) => {
+                              const next = { ...prev };
+                              delete next.sitePhotoUrl;
+                              return next;
+                            })
+                          }
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-64 h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-accent/50 transition-colors">
+                        <Upload className="h-6 w-6 text-muted-foreground mb-1" />
+                        <span className="text-xs text-muted-foreground">
+                          Charger une photo
+                        </span>
+                        <span className="text-[10px] text-muted-foreground/60">
+                          PNG, JPG — max 1 Mo
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 1_000_000) {
+                              toast.error("La photo doit faire moins de 1 Mo");
+                              return;
+                            }
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              setSettings((prev) => ({
+                                ...prev,
+                                sitePhotoUrl: reader.result as string,
+                              }));
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
