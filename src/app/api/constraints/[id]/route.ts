@@ -42,7 +42,6 @@ export async function PUT(
     const author = await getAuthor();
     const projectId = await getCurrentProjectId();
     const body = await request.json();
-    const parsed = constraintSchema.parse(body);
 
     const existing = await prisma.constraint.findFirst({
       where: { id, projectId },
@@ -54,9 +53,22 @@ export async function PUT(
       );
     }
 
-    const constraint = await prisma.constraint.update({
-      where: { id },
-      data: {
+    // Support partial update (status-only) or full update
+    const isStatusOnly = Object.keys(body).length === 1 && body.status;
+
+    let updateData;
+    if (isStatusOnly) {
+      const validStatuses = ["active", "respectee", "violee"];
+      if (!validStatuses.includes(body.status)) {
+        return NextResponse.json(
+          { error: "Statut invalide" },
+          { status: 400 }
+        );
+      }
+      updateData = { status: body.status };
+    } else {
+      const parsed = constraintSchema.parse(body);
+      updateData = {
         title: parsed.title,
         description: parsed.description ?? null,
         type: parsed.type,
@@ -66,13 +78,19 @@ export async function PUT(
         penaltyUnit: parsed.penaltyUnit ?? null,
         penaltyDetails: parsed.penaltyDetails ?? null,
         responsible: parsed.responsible ?? null,
-      },
+      };
+    }
+
+    const constraint = await prisma.constraint.update({
+      where: { id },
+      data: updateData,
     });
 
-    if (existing.status !== parsed.status) {
+    const newStatus = isStatusOnly ? body.status : updateData.status;
+    if (existing.status !== newStatus) {
       const newStatusLabel =
-        CONSTRAINT_STATUSES.find((s) => s.value === parsed.status)?.label ??
-        parsed.status;
+        CONSTRAINT_STATUSES.find((s) => s.value === newStatus)?.label ??
+        newStatus;
       await logActivity({
         type: "modification",
         description: `a changé le statut de la contrainte "${constraint.title}" en "${newStatusLabel}"`,
@@ -81,7 +99,7 @@ export async function PUT(
         entityId: constraint.id,
         projectId,
       });
-    } else {
+    } else if (!isStatusOnly) {
       await logActivity({
         type: "modification",
         description: `a modifié la contrainte "${constraint.title}"`,
