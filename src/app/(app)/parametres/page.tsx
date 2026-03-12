@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 
@@ -15,7 +14,6 @@ interface Project {
   id: string;
   name: string;
   description: string | null;
-  accessCode: string;
   startDate: string | null;
   endDate: string | null;
   address: string | null;
@@ -24,16 +22,12 @@ interface Project {
 export default function ParametresPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingCode, setSavingCode] = useState(false);
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
-
-  const [currentCode, setCurrentCode] = useState("");
-  const [newCode, setNewCode] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -99,47 +93,6 @@ export default function ParametresPage() {
       );
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleChangeCode(e: React.FormEvent) {
-    e.preventDefault();
-    if (!currentCode.trim()) {
-      toast.error("Le code actuel est requis");
-      return;
-    }
-    if (newCode.length < 4) {
-      toast.error("Le nouveau code doit contenir au moins 4 caractères");
-      return;
-    }
-
-    setSavingCode(true);
-    try {
-      const res = await fetch("/api/settings/access-code", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentCode: currentCode.trim(),
-          newCode: newCode.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Erreur lors du changement du code");
-      }
-
-      toast.success("Code d'accès modifié avec succès");
-      setCurrentCode("");
-      setNewCode("");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Erreur lors du changement du code"
-      );
-    } finally {
-      setSavingCode(false);
     }
   }
 
@@ -238,50 +191,6 @@ export default function ParametresPage() {
 
             <Button type="submit" disabled={saving}>
               {saving ? "Sauvegarde..." : "Sauvegarder"}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Code d&apos;accès</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Modifiez le code d&apos;accès utilisé pour se connecter au chantier.
-          </p>
-          <Separator className="mb-4" />
-          <form onSubmit={handleChangeCode} className="space-y-4">
-            <div>
-              <Label htmlFor="currentCode" className="mb-2 block">
-                Code actuel
-              </Label>
-              <Input
-                id="currentCode"
-                type="password"
-                value={currentCode}
-                onChange={(e) => setCurrentCode(e.target.value)}
-                placeholder="Entrez le code actuel"
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="newCode" className="mb-2 block">
-                Nouveau code
-              </Label>
-              <Input
-                id="newCode"
-                type="password"
-                value={newCode}
-                onChange={(e) => setNewCode(e.target.value)}
-                placeholder="Entrez le nouveau code (min. 4 caractères)"
-                required
-                minLength={4}
-              />
-            </div>
-
-            <Button type="submit" disabled={savingCode}>
-              {savingCode ? "Modification..." : "Changer le code"}
             </Button>
           </form>
         </CardContent>

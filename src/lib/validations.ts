@@ -1,8 +1,14 @@
 import { z } from "zod/v4";
 
 export const loginSchema = z.object({
-  code: z.string().min(1, "Le code est requis"),
-  pseudo: z.string().min(1, "Le pseudo est requis").max(50),
+  email: z.email("Email invalide"),
+  password: z.string().min(1, "Le mot de passe est requis"),
+});
+
+export const registerSchema = z.object({
+  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères").max(50),
+  email: z.email("Email invalide"),
+  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });
 
 export const eventSchema = z.object({

@@ -1,33 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { loginSchema } from "@/lib/validations";
+import { registerSchema } from "@/lib/validations";
 import { createSession, SESSION_COOKIE_NAME } from "@/lib/auth";
 import bcryptjs from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const parsed = loginSchema.safeParse(body);
+    const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json({ error: "Données invalides" }, { status: 400 });
     }
 
-    const { email, password } = parsed.data;
+    const { name, email, password } = parsed.data;
 
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) {
-      return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 });
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return NextResponse.json({ error: "Un compte avec cet email existe déjà" }, { status: 409 });
     }
 
-    const passwordMatch = await bcryptjs.compare(password, user.password);
-    if (!passwordMatch) {
-      return NextResponse.json({ error: "Email ou mot de passe incorrect" }, { status: 401 });
-    }
+    const hashedPassword = await bcryptjs.hash(password, 10);
+
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+      },
+    });
 
     const sessionId = await createSession(user.id);
 
-    const response = NextResponse.json({ success: true, userName: user.name });
+    const response = NextResponse.json({ success: true }, { status: 201 });
 
     response.cookies.set(SESSION_COOKIE_NAME, sessionId, {
       httpOnly: true,

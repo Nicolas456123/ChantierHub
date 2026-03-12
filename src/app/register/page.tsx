@@ -9,23 +9,35 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { HardHat } from "lucide-react";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    if (!name.trim()) {
+      setError("Veuillez entrer votre nom");
+      return;
+    }
+
     if (!email.trim()) {
       setError("Veuillez entrer votre email");
       return;
     }
 
-    if (!password) {
-      setError("Veuillez entrer votre mot de passe");
+    if (password.length < 6) {
+      setError("Le mot de passe doit contenir au moins 6 caractères");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Les mots de passe ne correspondent pas");
       return;
     }
 
@@ -33,16 +45,16 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ name: name.trim(), email: email.trim(), password }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.error || "Erreur de connexion");
+        setError(data.error || "Erreur lors de l'inscription");
         setLoading(false);
         return;
       }
@@ -63,10 +75,22 @@ export default function LoginPage() {
             <HardHat className="h-8 w-8 text-orange-600" />
           </div>
           <CardTitle className="text-2xl">ChantierHub</CardTitle>
-          <CardDescription>Connectez-vous à votre compte</CardDescription>
+          <CardDescription>Créer votre compte</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="name">Nom</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Votre nom"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
+              />
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -75,7 +99,6 @@ export default function LoginPage() {
                 placeholder="votre@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                autoFocus
               />
             </div>
 
@@ -84,9 +107,20 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="Votre mot de passe"
+                placeholder="Minimum 6 caractères"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Retapez votre mot de passe"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
 
@@ -95,13 +129,13 @@ export default function LoginPage() {
             )}
 
             <Button type="submit" disabled={loading} className="w-full">
-              {loading ? "Connexion..." : "Se connecter"}
+              {loading ? "Inscription..." : "Créer mon compte"}
             </Button>
 
             <p className="text-center text-sm text-muted-foreground">
-              Pas encore de compte ?{" "}
-              <Link href="/register" className="text-orange-600 hover:underline font-medium">
-                S&apos;inscrire
+              Déjà un compte ?{" "}
+              <Link href="/login" className="text-orange-600 hover:underline font-medium">
+                Se connecter
               </Link>
             </p>
           </form>

@@ -6,6 +6,24 @@ const client = createClient({
 });
 
 const statements = [
+  `CREATE TABLE IF NOT EXISTS User (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    email TEXT NOT NULL UNIQUE,
+    password TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'member',
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS User_email_key ON User(email)`,
+  `CREATE TABLE IF NOT EXISTS Session (
+    id TEXT PRIMARY KEY,
+    userId TEXT NOT NULL,
+    expiresAt DATETIME NOT NULL,
+    createdAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (userId) REFERENCES User(id) ON DELETE CASCADE
+  )`,
+  `CREATE INDEX IF NOT EXISTS Session_userId_idx ON Session(userId)`,
   `CREATE TABLE IF NOT EXISTS Project (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL DEFAULT 'Mon Chantier',

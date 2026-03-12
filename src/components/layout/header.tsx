@@ -8,16 +8,16 @@ import { useState, useEffect } from "react";
 
 export function Header() {
   const router = useRouter();
-  const [pseudo, setPseudo] = useState("");
+  const [userName, setUserName] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
-    const cookie = document.cookie
-      .split("; ")
-      .find((c) => c.startsWith("chantierhub-pseudo="));
-    if (cookie) {
-      setPseudo(decodeURIComponent(cookie.split("=")[1]));
-    }
+    fetch("/api/auth/me")
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data?.name) setUserName(data.name);
+      })
+      .catch(() => {});
   }, []);
 
   async function handleLogout() {
@@ -43,7 +43,7 @@ export function Header() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <User className="h-4 w-4" />
-            <span className="font-medium">{pseudo}</span>
+            <span className="font-medium">{userName}</span>
           </div>
           <Button variant="ghost" size="icon" onClick={handleLogout} title="Se déconnecter">
             <LogOut className="h-4 w-4" />

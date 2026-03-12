@@ -1,21 +1,28 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { prisma } from "@/lib/prisma";
+import { SESSION_COOKIE_NAME } from "@/lib/auth";
 
 export async function POST() {
-  const response = NextResponse.json({ success: true });
+  try {
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get(SESSION_COOKIE_NAME)?.value;
 
-  response.cookies.set("chantierhub-auth", "", {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+    if (sessionId) {
+      await prisma.session.delete({ where: { id: sessionId } }).catch(() => {});
+    }
 
-  response.cookies.set("chantierhub-pseudo", "", {
-    httpOnly: false,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 0,
-  });
+    const response = NextResponse.json({ success: true });
 
-  return response;
+    response.cookies.set(SESSION_COOKIE_NAME, "", {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 0,
+    });
+
+    return response;
+  } catch {
+    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  }
 }

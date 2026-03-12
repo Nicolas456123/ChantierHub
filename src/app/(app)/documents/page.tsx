@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES } from "@/lib/constants";
-import { Plus, FolderOpen, Download } from "lucide-react";
+import { Plus, FolderOpen, Download, Eye } from "lucide-react";
 import { DeleteDocumentButton } from "./delete-document-button";
 
 export const dynamic = "force-dynamic";
@@ -78,13 +78,18 @@ export default async function DocumentsPage() {
                       {doc.author} &middot; {formatDate(doc.createdAt)}
                     </p>
                     <div className="flex items-center gap-2 pt-1">
-                      <a
-                        href={`/api/documents/${doc.id}/download`}
+                      <Link
+                        href={`/documents/${doc.id}`}
                         className="flex-1"
                       >
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Download className="h-4 w-4 mr-2" />
-                          Télécharger
+                        <Button size="sm" className="w-full">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Voir
+                        </Button>
+                      </Link>
+                      <a href={`/api/documents/${doc.id}/download`}>
+                        <Button variant="outline" size="sm">
+                          <Download className="h-4 w-4" />
                         </Button>
                       </a>
                       <DeleteDocumentButton id={doc.id} name={doc.name} />
