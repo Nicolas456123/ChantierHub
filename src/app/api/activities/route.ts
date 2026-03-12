@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const projectId = await getCurrentProjectId();
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
     const limit = Math.min(
@@ -12,7 +14,7 @@ export async function GET(request: NextRequest) {
     const entityType = searchParams.get("entityType");
     const author = searchParams.get("author");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { projectId };
 
     if (entityType) {
       where.entityType = entityType;

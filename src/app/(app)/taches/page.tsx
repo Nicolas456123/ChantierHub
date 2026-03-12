@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,10 @@ import { Plus, CheckSquare } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function TachesPage() {
+  const projectId = await getCurrentProjectId();
+
   const tasks = await prisma.task.findMany({
+    where: { projectId },
     orderBy: { createdAt: "desc" },
   });
 

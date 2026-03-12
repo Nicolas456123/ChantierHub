@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { documentSchema } from "@/lib/validations";
 import { put } from "@vercel/blob";
@@ -9,10 +9,11 @@ import path from "path";
 
 export async function GET(request: NextRequest) {
   try {
+    const projectId = await getCurrentProjectId();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { projectId };
 
     if (category) {
       where.category = category;
@@ -35,6 +36,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const formData = await request.formData();
 
     const file = formData.get("file") as File | null;
@@ -73,6 +75,7 @@ export async function POST(request: NextRequest) {
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
         author,
+        projectId,
       },
     });
 
@@ -82,6 +85,7 @@ export async function POST(request: NextRequest) {
       author,
       entityType: "document",
       entityId: document.id,
+      projectId,
     });
 
     return NextResponse.json(document, { status: 201 });

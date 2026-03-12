@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -11,7 +12,10 @@ import { Plus, BookOpen } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export default async function JournalPage() {
+  const projectId = await getCurrentProjectId();
+
   const events = await prisma.event.findMany({
+    where: { projectId },
     orderBy: { date: "desc" },
   });
 

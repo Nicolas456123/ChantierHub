@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { requestSchema } from "@/lib/validations";
 
@@ -10,6 +10,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const projectId = await getCurrentProjectId();
 
     const requestItem = await prisma.request.findUnique({
       where: { id },
@@ -20,7 +21,7 @@ export async function GET(
       },
     });
 
-    if (!requestItem) {
+    if (!requestItem || requestItem.projectId !== projectId) {
       return NextResponse.json(
         { error: "Demande non trouvée" },
         { status: 404 }
@@ -43,12 +44,13 @@ export async function PUT(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = requestSchema.parse(body);
 
     const existing = await prisma.request.findUnique({ where: { id } });
 
-    if (!existing) {
+    if (!existing || existing.projectId !== projectId) {
       return NextResponse.json(
         { error: "Demande non trouvée" },
         { status: 404 }
@@ -74,6 +76,7 @@ export async function PUT(
         author,
         entityType: "request",
         entityId: updatedRequest.id,
+        projectId,
       });
     } else {
       await logActivity({
@@ -82,6 +85,7 @@ export async function PUT(
         author,
         entityType: "request",
         entityId: updatedRequest.id,
+        projectId,
       });
     }
 
@@ -105,10 +109,11 @@ export async function DELETE(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
 
     const existing = await prisma.request.findUnique({ where: { id } });
 
-    if (!existing) {
+    if (!existing || existing.projectId !== projectId) {
       return NextResponse.json(
         { error: "Demande non trouvée" },
         { status: 404 }
@@ -123,6 +128,7 @@ export async function DELETE(
       author,
       entityType: "request",
       entityId: id,
+      projectId,
     });
 
     return NextResponse.json({ success: true });

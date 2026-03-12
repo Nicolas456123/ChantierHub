@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,9 +23,10 @@ export default async function DemandeDetailPage({
   params,
 }: DemandeDetailPageProps) {
   const { id } = await params;
+  const projectId = await getCurrentProjectId();
 
-  const requestItem = await prisma.request.findUnique({
-    where: { id },
+  const requestItem = await prisma.request.findFirst({
+    where: { id, projectId },
     include: {
       comments: {
         orderBy: { createdAt: "asc" },

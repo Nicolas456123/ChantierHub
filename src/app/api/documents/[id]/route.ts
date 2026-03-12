@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { del } from "@vercel/blob";
 
@@ -10,12 +10,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const projectId = await getCurrentProjectId();
 
     const document = await prisma.document.findUnique({
       where: { id },
     });
 
-    if (!document) {
+    if (!document || document.projectId !== projectId) {
       return NextResponse.json(
         { error: "Document non trouvé" },
         { status: 404 }
@@ -38,9 +39,10 @@ export async function DELETE(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
 
     const document = await prisma.document.findUnique({ where: { id } });
-    if (!document) {
+    if (!document || document.projectId !== projectId) {
       return NextResponse.json(
         { error: "Document non trouvé" },
         { status: 404 }
@@ -64,6 +66,7 @@ export async function DELETE(
       author,
       entityType: "document",
       entityId: id,
+      projectId,
     });
 
     return NextResponse.json({ success: true });

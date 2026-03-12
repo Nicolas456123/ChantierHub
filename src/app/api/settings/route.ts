@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { settingsSchema } from "@/lib/validations";
 
 export async function GET() {
   try {
-    let project = await prisma.project.findFirst();
+    const projectId = await getCurrentProjectId();
+    const project = await prisma.project.findUnique({
+      where: { id: projectId },
+    });
 
     if (!project) {
-      project = await prisma.project.create({
-        data: { name: "Mon Chantier" },
-      });
+      return NextResponse.json(
+        { error: "Projet non trouvé" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json(project);
@@ -26,19 +30,12 @@ export async function GET() {
 export async function PUT(request: NextRequest) {
   try {
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = settingsSchema.parse(body);
 
-    let project = await prisma.project.findFirst();
-
-    if (!project) {
-      project = await prisma.project.create({
-        data: { name: "Mon Chantier" },
-      });
-    }
-
     const updated = await prisma.project.update({
-      where: { id: project.id },
+      where: { id: projectId },
       data: {
         name: parsed.name,
         description: parsed.description ?? null,
@@ -54,6 +51,7 @@ export async function PUT(request: NextRequest) {
       author,
       entityType: "project",
       entityId: updated.id,
+      projectId,
     });
 
     return NextResponse.json(updated);

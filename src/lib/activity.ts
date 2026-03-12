@@ -6,6 +6,7 @@ interface LogActivityParams {
   author: string;
   entityType: string;
   entityId?: string;
+  projectId: string;
 }
 
 export async function logActivity(params: LogActivityParams) {
@@ -16,6 +17,7 @@ export async function logActivity(params: LogActivityParams) {
       author: params.author,
       entityType: params.entityType,
       entityId: params.entityId,
+      projectId: params.projectId,
     },
   });
 }

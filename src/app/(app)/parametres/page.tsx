@@ -29,6 +29,11 @@ export default function ParametresPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
+  // Access code
+  const [currentCode, setCurrentCode] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [savingCode, setSavingCode] = useState(false);
+
   useEffect(() => {
     async function load() {
       try {
@@ -93,6 +98,47 @@ export default function ParametresPage() {
       );
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleChangeAccessCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!currentCode.trim()) {
+      toast.error("Veuillez entrer le code actuel");
+      return;
+    }
+    if (newCode.trim().length < 4) {
+      toast.error("Le nouveau code doit contenir au moins 4 caractères");
+      return;
+    }
+
+    setSavingCode(true);
+    try {
+      const res = await fetch("/api/settings/access-code", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentCode: currentCode.trim(),
+          newCode: newCode.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erreur lors du changement");
+      }
+
+      toast.success("Code d'accès modifié");
+      setCurrentCode("");
+      setNewCode("");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Erreur lors du changement du code"
+      );
+    } finally {
+      setSavingCode(false);
     }
   }
 
@@ -191,6 +237,47 @@ export default function ParametresPage() {
 
             <Button type="submit" disabled={saving}>
               {saving ? "Sauvegarde..." : "Sauvegarder"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-4">
+            Code d&apos;accès du projet
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Partagez ce code avec votre équipe pour qu&apos;ils puissent
+            rejoindre le projet.
+          </p>
+          <form onSubmit={handleChangeAccessCode} className="space-y-4">
+            <div>
+              <Label htmlFor="currentCode" className="mb-2 block">
+                Code actuel
+              </Label>
+              <Input
+                id="currentCode"
+                value={currentCode}
+                onChange={(e) => setCurrentCode(e.target.value)}
+                placeholder="Entrez le code actuel"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="newCode" className="mb-2 block">
+                Nouveau code
+              </Label>
+              <Input
+                id="newCode"
+                value={newCode}
+                onChange={(e) => setNewCode(e.target.value)}
+                placeholder="Nouveau code (min. 4 caractères)"
+              />
+            </div>
+
+            <Button type="submit" disabled={savingCode} variant="outline">
+              {savingCode ? "Modification..." : "Changer le code"}
             </Button>
           </form>
         </CardContent>

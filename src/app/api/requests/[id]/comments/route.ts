@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { commentSchema } from "@/lib/validations";
 
@@ -43,6 +43,7 @@ export async function POST(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = commentSchema.parse(body);
 
@@ -71,6 +72,7 @@ export async function POST(
       author,
       entityType: "comment",
       entityId: comment.id,
+      projectId,
     });
 
     return NextResponse.json(comment, { status: 201 });

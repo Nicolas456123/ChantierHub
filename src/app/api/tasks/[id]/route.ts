@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { taskSchema } from "@/lib/validations";
 import { TASK_STATUSES } from "@/lib/constants";
@@ -11,12 +11,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const projectId = await getCurrentProjectId();
 
     const task = await prisma.task.findUnique({
       where: { id },
     });
 
-    if (!task) {
+    if (!task || task.projectId !== projectId) {
       return NextResponse.json(
         { error: "Tâche non trouvée" },
         { status: 404 }
@@ -39,11 +40,12 @@ export async function PUT(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = taskSchema.parse(body);
 
     const existing = await prisma.task.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing || existing.projectId !== projectId) {
       return NextResponse.json(
         { error: "Tâche non trouvée" },
         { status: 404 }
@@ -72,6 +74,7 @@ export async function PUT(
         author,
         entityType: "task",
         entityId: task.id,
+        projectId,
       });
     } else {
       await logActivity({
@@ -80,6 +83,7 @@ export async function PUT(
         author,
         entityType: "task",
         entityId: task.id,
+        projectId,
       });
     }
 
@@ -103,9 +107,10 @@ export async function DELETE(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
 
     const task = await prisma.task.findUnique({ where: { id } });
-    if (!task) {
+    if (!task || task.projectId !== projectId) {
       return NextResponse.json(
         { error: "Tâche non trouvée" },
         { status: 404 }
@@ -120,6 +125,7 @@ export async function DELETE(
       author,
       entityType: "task",
       entityId: id,
+      projectId,
     });
 
     return NextResponse.json({ success: true });

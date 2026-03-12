@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { eventSchema } from "@/lib/validations";
 
@@ -10,12 +10,13 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
+    const projectId = await getCurrentProjectId();
 
     const event = await prisma.event.findUnique({
       where: { id },
     });
 
-    if (!event) {
+    if (!event || event.projectId !== projectId) {
       return NextResponse.json(
         { error: "Événement non trouvé" },
         { status: 404 }
@@ -38,11 +39,12 @@ export async function PUT(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = eventSchema.parse(body);
 
     const existing = await prisma.event.findUnique({ where: { id } });
-    if (!existing) {
+    if (!existing || existing.projectId !== projectId) {
       return NextResponse.json(
         { error: "Événement non trouvé" },
         { status: 404 }
@@ -66,6 +68,7 @@ export async function PUT(
       author,
       entityType: "event",
       entityId: event.id,
+      projectId,
     });
 
     return NextResponse.json(event);
@@ -88,9 +91,10 @@ export async function DELETE(
   try {
     const { id } = await params;
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
 
     const event = await prisma.event.findUnique({ where: { id } });
-    if (!event) {
+    if (!event || event.projectId !== projectId) {
       return NextResponse.json(
         { error: "Événement non trouvé" },
         { status: 404 }
@@ -105,6 +109,7 @@ export async function DELETE(
       author,
       entityType: "event",
       entityId: id,
+      projectId,
     });
 
     return NextResponse.json({ success: true });

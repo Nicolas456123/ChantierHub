@@ -47,7 +47,7 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/");
+      router.push("/projects");
       router.refresh();
     } catch {
       setError("Erreur de connexion au serveur");

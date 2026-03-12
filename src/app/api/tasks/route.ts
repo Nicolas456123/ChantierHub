@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { taskSchema } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   try {
+    const projectId = await getCurrentProjectId();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
     const priority = searchParams.get("priority");
     const assignedTo = searchParams.get("assignedTo");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { projectId };
 
     if (status) {
       where.status = status;
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = taskSchema.parse(body);
 
@@ -54,6 +56,7 @@ export async function POST(request: NextRequest) {
         assignedTo: parsed.assignedTo ?? null,
         dueDate: parsed.dueDate ? new Date(parsed.dueDate) : null,
         author,
+        projectId,
       },
     });
 
@@ -63,6 +66,7 @@ export async function POST(request: NextRequest) {
       author,
       entityType: "task",
       entityId: task.id,
+      projectId,
     });
 
     return NextResponse.json(task, { status: 201 });

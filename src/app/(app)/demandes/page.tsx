@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +23,10 @@ const STATUS_TABS = [
 ];
 
 export default async function DemandesPage() {
+  const projectId = await getCurrentProjectId();
+
   const requests = await prisma.request.findMany({
+    where: { projectId },
     include: {
       _count: {
         select: { comments: true },

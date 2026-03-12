@@ -6,7 +6,8 @@ export const loginSchema = z.object({
 });
 
 export const registerSchema = z.object({
-  name: z.string().min(2, "Le nom doit contenir au moins 2 caractères").max(50),
+  firstName: z.string().min(1, "Le prénom est requis").max(50),
+  lastName: z.string().min(1, "Le nom est requis").max(50),
   email: z.email("Email invalide"),
   password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
 });

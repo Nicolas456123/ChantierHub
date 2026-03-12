@@ -11,9 +11,9 @@ export async function GET() {
 
     return NextResponse.json({
       id: session.user.id,
-      name: session.user.name,
+      firstName: session.user.firstName,
+      lastName: session.user.lastName,
       email: session.user.email,
-      role: session.user.role,
     });
   } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

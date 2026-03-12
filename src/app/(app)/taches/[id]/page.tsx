@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,9 +18,10 @@ interface TaskDetailPageProps {
 
 export default async function TaskDetailPage({ params }: TaskDetailPageProps) {
   const { id } = await params;
+  const projectId = await getCurrentProjectId();
 
-  const task = await prisma.task.findUnique({
-    where: { id },
+  const task = await prisma.task.findFirst({
+    where: { id, projectId },
   });
 
   if (!task) {

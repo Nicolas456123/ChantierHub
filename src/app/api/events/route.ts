@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthor } from "@/lib/auth";
+import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { eventSchema } from "@/lib/validations";
 
 export async function GET(request: NextRequest) {
   try {
+    const projectId = await getCurrentProjectId();
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
     const priority = searchParams.get("priority");
     const search = searchParams.get("search");
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { projectId };
 
     if (category) {
       where.category = category;
@@ -42,6 +43,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const author = await getAuthor();
+    const projectId = await getCurrentProjectId();
     const body = await request.json();
     const parsed = eventSchema.parse(body);
 
@@ -53,6 +55,7 @@ export async function POST(request: NextRequest) {
         date: parsed.date ? new Date(parsed.date) : new Date(),
         priority: parsed.priority,
         author,
+        projectId,
       },
     });
 
@@ -62,6 +65,7 @@ export async function POST(request: NextRequest) {
       author,
       entityType: "event",
       entityId: event.id,
+      projectId,
     });
 
     return NextResponse.json(event, { status: 201 });

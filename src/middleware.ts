@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const sessionCookie = request.cookies.get("chantierhub-session");
+  const projectCookie = request.cookies.get("chantierhub-project");
   const { pathname } = request.nextUrl;
 
   // Public routes - no auth needed
   if (pathname === "/login" || pathname === "/register") {
-    // If already logged in, redirect to home
     if (sessionCookie) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL("/projects", request.url));
     }
     return NextResponse.next();
   }
@@ -18,9 +18,19 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Everything else requires auth
+  // Not logged in → login
   if (!sessionCookie) {
     return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  // Project selection page and project API routes - need auth but no project
+  if (pathname === "/projects" || pathname.startsWith("/api/projects")) {
+    return NextResponse.next();
+  }
+
+  // No project selected → go to project selection
+  if (!projectCookie) {
+    return NextResponse.redirect(new URL("/projects", request.url));
   }
 
   return NextResponse.next();

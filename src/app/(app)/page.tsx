@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
+import { getCurrentProjectId } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
+  const projectId = await getCurrentProjectId();
+
   const [
     totalEvents,
     totalRequests,
@@ -30,16 +33,16 @@ export default async function DashboardPage() {
     recentActivities,
     upcomingTasks,
   ] = await Promise.all([
-    prisma.event.count(),
-    prisma.request.count(),
-    prisma.request.count({ where: { status: "en_attente" } }),
-    prisma.task.count(),
-    prisma.task.count({ where: { status: { not: "termine" } } }),
-    prisma.document.count(),
-    prisma.event.findMany({ orderBy: { date: "desc" }, take: 5 }),
-    prisma.activity.findMany({ orderBy: { createdAt: "desc" }, take: 10 }),
+    prisma.event.count({ where: { projectId } }),
+    prisma.request.count({ where: { projectId } }),
+    prisma.request.count({ where: { projectId, status: "en_attente" } }),
+    prisma.task.count({ where: { projectId } }),
+    prisma.task.count({ where: { projectId, status: { not: "termine" } } }),
+    prisma.document.count({ where: { projectId } }),
+    prisma.event.findMany({ where: { projectId }, orderBy: { date: "desc" }, take: 5 }),
+    prisma.activity.findMany({ where: { projectId }, orderBy: { createdAt: "desc" }, take: 10 }),
     prisma.task.findMany({
-      where: { status: { not: "termine" } },
+      where: { projectId, status: { not: "termine" } },
       orderBy: { createdAt: "desc" },
       take: 5,
     }),
