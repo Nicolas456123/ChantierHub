@@ -42,10 +42,40 @@ export const DOCUMENT_CATEGORIES = [
   { value: "autre", label: "Autre" },
 ] as const;
 
+// Legacy — kept for backward compatibility
 export const CONSTRAINT_TYPES = [
   { value: "contractuelle", label: "Contractuelle" },
   { value: "reglementaire", label: "Réglementaire" },
   { value: "technique", label: "Technique" },
+] as const;
+
+export const CONSTRAINT_CATEGORIES = [
+  // Pénalités contractuelles
+  { value: "retard_execution", label: "Retard d'exécution", group: "Pénalités contractuelles" },
+  { value: "livrables_documentaires", label: "Livrables documentaires", group: "Pénalités contractuelles" },
+  { value: "sous_traitance", label: "Sous-traitance", group: "Pénalités contractuelles" },
+  { value: "personnel_detachement", label: "Personnel / Détachement", group: "Pénalités contractuelles" },
+  // Sécurité & Environnement
+  { value: "securite", label: "Sécurité / EPI", group: "Sécurité & Environnement" },
+  { value: "hygiene", label: "Hygiène", group: "Sécurité & Environnement" },
+  { value: "environnement", label: "Environnement", group: "Sécurité & Environnement" },
+  { value: "dechets", label: "Suivi des déchets", group: "Sécurité & Environnement" },
+  // Organisation chantier
+  { value: "nettoyage_chantier", label: "Nettoyage / Repliement", group: "Organisation chantier" },
+  { value: "reunions", label: "Réunions (retard / absence)", group: "Organisation chantier" },
+  { value: "absence_responsable", label: "Absence de responsable", group: "Organisation chantier" },
+  // Autres
+  { value: "qualite_mieux_disant", label: "Qualité / Mieux-disant", group: "Autres" },
+  { value: "contractuelle", label: "Clause contractuelle", group: "Autres" },
+  { value: "reglementaire", label: "Obligation réglementaire", group: "Autres" },
+  { value: "autre", label: "Autre", group: "Autres" },
+] as const;
+
+export const CONSTRAINT_CATEGORY_GROUPS = [
+  "Pénalités contractuelles",
+  "Sécurité & Environnement",
+  "Organisation chantier",
+  "Autres",
 ] as const;
 
 export const CONSTRAINT_STATUSES = [
@@ -54,10 +84,28 @@ export const CONSTRAINT_STATUSES = [
   { value: "violee", label: "Violée", color: "bg-red-100 text-red-800" },
 ] as const;
 
+// Legacy — kept for backward compatibility
 export const PENALTY_UNITS = [
   { value: "par_jour", label: "Par jour de retard" },
   { value: "forfaitaire", label: "Forfaitaire" },
   { value: "par_occurrence", label: "Par occurrence" },
+] as const;
+
+export const PENALTY_PER = [
+  { value: "par_jour", label: "Par jour calendaire" },
+  { value: "par_jour_ouvrable", label: "Par jour ouvré" },
+  { value: "par_occurrence", label: "Par occurrence / manquement" },
+  { value: "par_document", label: "Par document" },
+  { value: "par_salarie", label: "Par salarié concerné" },
+  { value: "par_manquement", label: "Par manquement constaté" },
+  { value: "forfaitaire", label: "Forfaitaire (montant fixe)" },
+  { value: "proportionnel", label: "Proportionnel au contrat" },
+] as const;
+
+export const PENALTY_CAP_UNITS = [
+  { value: "montant_fixe", label: "Montant fixe (€)" },
+  { value: "pourcentage_contrat", label: "% du montant HT du contrat" },
+  { value: "par_unite", label: "Plafond par unité" },
 ] as const;
 
 export const NAV_ITEMS = [
@@ -66,7 +114,7 @@ export const NAV_ITEMS = [
   { href: "/demandes", label: "Demandes", icon: "FileQuestion" },
   { href: "/documents", label: "Documents", icon: "FolderOpen" },
   { href: "/taches", label: "Tâches", icon: "CheckSquare" },
-  { href: "/contraintes", label: "Contraintes", icon: "Shield" },
+  { href: "/contraintes", label: "Suivi contractuel", icon: "Shield" },
   { href: "/planning", label: "Planning", icon: "CalendarRange" },
   { href: "/historique", label: "Historique", icon: "Clock" },
   { href: "/parametres", label: "Paramètres", icon: "Settings" },

@@ -9,7 +9,7 @@ import {
   TASK_STATUSES,
   REQUEST_STATUSES,
   CONSTRAINT_STATUSES,
-  PENALTY_UNITS,
+  PENALTY_PER,
 } from "@/lib/constants";
 import {
   CalendarRange,
@@ -101,7 +101,7 @@ function getTypeLabel(type: "task" | "request" | "constraint") {
 }
 
 function getPenaltyUnitLabel(unit: string): string {
-  const found = PENALTY_UNITS.find((u) => u.value === unit);
+  const found = PENALTY_PER.find((u) => u.value === unit);
   return found?.label ?? unit;
 }
 
@@ -164,7 +164,7 @@ export default async function PlanningPage() {
       href: `/contraintes/${c.id}`,
       statusColor: getStatusColor("constraint", c.status),
       penaltyAmount: c.penaltyAmount,
-      penaltyUnit: c.penaltyUnit,
+      penaltyUnit: c.penaltyPer || c.penaltyUnit,
     })),
   ].sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
 

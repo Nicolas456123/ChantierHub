@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatDate, formatDateTime } from "@/lib/format";
 import {
-  CONSTRAINT_TYPES,
+  CONSTRAINT_CATEGORIES,
   CONSTRAINT_STATUSES,
-  PENALTY_UNITS,
+  PENALTY_PER,
+  PENALTY_CAP_UNITS,
 } from "@/lib/constants";
-import { ArrowLeft, Calendar, User, Clock, Euro, Pencil } from "lucide-react";
+import { ArrowLeft, Calendar, User, Clock, Euro, FileText, Scale, AlertTriangle, Pencil } from "lucide-react";
 import { StatusChanger } from "./status-changer";
 import { DeleteButton } from "./delete-button";
 
@@ -36,13 +37,22 @@ export default async function ContrainteDetailPage({
     notFound();
   }
 
-  const typeInfo = CONSTRAINT_TYPES.find((t) => t.value === constraint.type);
+  const categoryInfo = CONSTRAINT_CATEGORIES.find(
+    (c) => c.value === (constraint.category || constraint.type)
+  );
   const statusInfo = CONSTRAINT_STATUSES.find(
     (s) => s.value === constraint.status
   );
-  const unitInfo = PENALTY_UNITS.find(
-    (u) => u.value === constraint.penaltyUnit
+  const penaltyPerInfo = PENALTY_PER.find(
+    (p) => p.value === (constraint.penaltyPer || constraint.penaltyUnit)
   );
+  const capUnitInfo = PENALTY_CAP_UNITS.find(
+    (u) => u.value === constraint.penaltyCapUnit
+  );
+
+  const hasPenalty = constraint.penaltyAmount || constraint.penaltyPer ||
+    constraint.penaltyFormula || constraint.penaltyCap ||
+    constraint.escalation || constraint.condition || constraint.penaltyDetails;
 
   return (
     <div className="space-y-6">
@@ -67,8 +77,8 @@ export default async function ContrainteDetailPage({
                     {constraint.title}
                   </CardTitle>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {typeInfo && (
-                      <Badge variant="outline">{typeInfo.label}</Badge>
+                    {categoryInfo && (
+                      <Badge variant="outline">{categoryInfo.label}</Badge>
                     )}
                     {statusInfo && (
                       <Badge
@@ -76,6 +86,11 @@ export default async function ContrainteDetailPage({
                         className={statusInfo.color}
                       >
                         {statusInfo.label}
+                      </Badge>
+                    )}
+                    {constraint.articleRef && (
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {constraint.articleRef}
                       </Badge>
                     )}
                   </div>
@@ -105,44 +120,99 @@ export default async function ContrainteDetailPage({
                 </div>
               )}
 
-              <Separator />
+              {constraint.sourceDocument && (
+                <div className="flex items-center gap-2 text-sm">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-muted-foreground">Source :</span>
+                  <span className="font-medium">{constraint.sourceDocument}</span>
+                </div>
+              )}
+
+              {(constraint.description || constraint.sourceDocument) && hasPenalty && (
+                <Separator />
+              )}
 
               {/* Penalty section */}
-              {(constraint.penaltyAmount ||
-                constraint.penaltyUnit ||
-                constraint.penaltyDetails) && (
+              {hasPenalty && (
                 <>
                   <div>
-                    <h3 className="text-sm font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                    <h3 className="text-sm font-medium text-muted-foreground mb-3 flex items-center gap-1">
                       <Euro className="h-4 w-4" />
-                      Penalites
+                      Pénalité
                     </h3>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      {constraint.penaltyAmount && (
-                        <div className="text-sm">
-                          <span className="text-muted-foreground">
-                            Montant:
-                          </span>{" "}
-                          <span className="font-medium text-orange-600">
-                            {constraint.penaltyAmount.toString()}&euro;
+                    <div className="space-y-3">
+                      {/* Amount and mode */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {constraint.penaltyAmount && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Montant :</span>{" "}
+                            <span className="font-semibold text-orange-600">
+                              {constraint.penaltyAmount.toLocaleString("fr-FR")} €
+                            </span>
+                            {penaltyPerInfo && (
+                              <span className="text-muted-foreground ml-1">
+                                {penaltyPerInfo.label.toLowerCase()}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {!constraint.penaltyAmount && penaltyPerInfo && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Mode :</span>{" "}
+                            <span className="font-medium">{penaltyPerInfo.label}</span>
+                          </div>
+                        )}
+                        {constraint.penaltyCap && (
+                          <div className="text-sm">
+                            <span className="text-muted-foreground">Plafond :</span>{" "}
+                            <span className="font-medium">
+                              {capUnitInfo?.value === "pourcentage_contrat"
+                                ? `${constraint.penaltyCap}% du montant HT`
+                                : `${constraint.penaltyCap.toLocaleString("fr-FR")} €`}
+                              {capUnitInfo?.value === "par_unite" && " par unité"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Formula */}
+                      {constraint.penaltyFormula && (
+                        <div className="text-sm bg-orange-50 border border-orange-200 rounded-md p-3">
+                          <span className="text-muted-foreground flex items-center gap-1 mb-1">
+                            <Scale className="h-3.5 w-3.5" />
+                            Formule :
                           </span>
+                          <p className="font-medium">{constraint.penaltyFormula}</p>
                         </div>
                       )}
-                      {unitInfo && (
+
+                      {/* Condition */}
+                      {constraint.condition && (
                         <div className="text-sm">
-                          <span className="text-muted-foreground">Unite:</span>{" "}
-                          <span className="font-medium">{unitInfo.label}</span>
+                          <span className="text-muted-foreground flex items-center gap-1 mb-1">
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Condition de déclenchement :
+                          </span>
+                          <p className="whitespace-pre-wrap">{constraint.condition}</p>
+                        </div>
+                      )}
+
+                      {/* Escalation */}
+                      {constraint.escalation && (
+                        <div className="text-sm bg-red-50 border border-red-200 rounded-md p-3">
+                          <span className="text-muted-foreground mb-1 block">Escalade / Récidive :</span>
+                          <p className="whitespace-pre-wrap font-medium">{constraint.escalation}</p>
+                        </div>
+                      )}
+
+                      {/* Details */}
+                      {constraint.penaltyDetails && (
+                        <div className="text-sm">
+                          <span className="text-muted-foreground">Détails :</span>
+                          <p className="mt-1 whitespace-pre-wrap">{constraint.penaltyDetails}</p>
                         </div>
                       )}
                     </div>
-                    {constraint.penaltyDetails && (
-                      <div className="mt-2 text-sm">
-                        <span className="text-muted-foreground">Details:</span>
-                        <p className="mt-1 whitespace-pre-wrap">
-                          {constraint.penaltyDetails}
-                        </p>
-                      </div>
-                    )}
                   </div>
                   <Separator />
                 </>
@@ -152,7 +222,7 @@ export default async function ContrainteDetailPage({
                 {constraint.responsible && (
                   <div className="flex items-center gap-2 text-sm">
                     <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Responsable:</span>
+                    <span className="text-muted-foreground">Responsable :</span>
                     <span className="font-medium">
                       {constraint.responsible}
                     </span>
@@ -162,7 +232,7 @@ export default async function ContrainteDetailPage({
                 {constraint.dueDate && (
                   <div className="flex items-center gap-2 text-sm">
                     <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Echeance:</span>
+                    <span className="text-muted-foreground">Échéance :</span>
                     <span className="font-medium">
                       {formatDate(constraint.dueDate)}
                     </span>
@@ -171,7 +241,7 @@ export default async function ContrainteDetailPage({
 
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Creee le:</span>
+                  <span className="text-muted-foreground">Créé le :</span>
                   <span className="font-medium">
                     {formatDateTime(constraint.createdAt)}
                   </span>
@@ -179,7 +249,7 @@ export default async function ContrainteDetailPage({
 
                 <div className="flex items-center gap-2 text-sm">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Mise a jour:</span>
+                  <span className="text-muted-foreground">Mis à jour :</span>
                   <span className="font-medium">
                     {formatDateTime(constraint.updatedAt)}
                   </span>
@@ -205,7 +275,7 @@ export default async function ContrainteDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Informations</CardTitle>
+              <CardTitle className="text-base">Résumé</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
               <div className="flex justify-between">
@@ -220,14 +290,30 @@ export default async function ContrainteDetailPage({
                 )}
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Type</span>
-                <span className="font-medium">{typeInfo?.label || "-"}</span>
+                <span className="text-muted-foreground">Catégorie</span>
+                <span className="font-medium text-right">{categoryInfo?.label || "-"}</span>
               </div>
+              {constraint.articleRef && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Article</span>
+                  <span className="font-mono text-xs">{constraint.articleRef}</span>
+                </div>
+              )}
               {constraint.penaltyAmount && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Penalite</span>
+                  <span className="text-muted-foreground">Pénalité</span>
                   <span className="font-medium text-orange-600">
-                    {constraint.penaltyAmount.toString()}&euro;
+                    {constraint.penaltyAmount.toLocaleString("fr-FR")} €
+                  </span>
+                </div>
+              )}
+              {constraint.penaltyCap && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Plafond</span>
+                  <span className="font-medium">
+                    {capUnitInfo?.value === "pourcentage_contrat"
+                      ? `${constraint.penaltyCap}%`
+                      : `${constraint.penaltyCap.toLocaleString("fr-FR")} €`}
                   </span>
                 </div>
               )}

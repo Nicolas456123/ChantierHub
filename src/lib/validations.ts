@@ -59,12 +59,29 @@ export const settingsSchema = z.object({
 export const constraintSchema = z.object({
   title: z.string().min(1, "Le titre est requis").max(200),
   description: z.string().optional(),
-  type: z.enum(["contractuelle", "reglementaire", "technique"]),
+  type: z.string().optional(), // backward compat
+  category: z.enum([
+    "retard_execution", "livrables_documentaires", "sous_traitance", "personnel_detachement",
+    "securite", "hygiene", "environnement", "dechets",
+    "nettoyage_chantier", "reunions", "absence_responsable",
+    "qualite_mieux_disant", "contractuelle", "reglementaire", "autre",
+  ]),
   status: z.enum(["active", "respectee", "violee"]).default("active"),
   dueDate: z.string().optional().nullable(),
+  articleRef: z.string().max(100).optional().nullable(),
   penaltyAmount: z.number().optional().nullable(),
-  penaltyUnit: z.enum(["par_jour", "forfaitaire", "par_occurrence"]).optional().nullable(),
+  penaltyUnit: z.string().optional().nullable(), // backward compat
+  penaltyPer: z.enum([
+    "par_jour", "par_jour_ouvrable", "par_occurrence", "par_document",
+    "par_salarie", "par_manquement", "forfaitaire", "proportionnel",
+  ]).optional().nullable(),
+  penaltyFormula: z.string().max(500).optional().nullable(),
+  penaltyCap: z.number().optional().nullable(),
+  penaltyCapUnit: z.enum(["montant_fixe", "pourcentage_contrat", "par_unite"]).optional().nullable(),
   penaltyDetails: z.string().optional(),
+  escalation: z.string().max(1000).optional().nullable(),
+  condition: z.string().max(1000).optional().nullable(),
+  sourceDocument: z.string().max(200).optional().nullable(),
   responsible: z.string().optional(),
 });
 

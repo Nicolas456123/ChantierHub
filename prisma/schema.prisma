@@ -164,23 +164,33 @@ model Activity {
 }
 
 model Constraint {
-  id             String    @id @default(cuid())
-  title          String
-  description    String?
-  type           String
-  status         String    @default("active")
-  dueDate        DateTime?
-  penaltyAmount  Float?
-  penaltyUnit    String?
-  penaltyDetails String?
-  responsible    String?
-  author         String
-  projectId      String
-  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  type            String
+  category        String?
+  status          String    @default("active")
+  dueDate         DateTime?
+  articleRef      String?
+  penaltyAmount   Float?
+  penaltyUnit     String?
+  penaltyPer      String?
+  penaltyFormula  String?
+  penaltyCap      Float?
+  penaltyCapUnit  String?
+  penaltyDetails  String?
+  escalation      String?
+  condition       String?
+  sourceDocument  String?
+  responsible     String?
+  author          String
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([projectId])
   @@index([status])
   @@index([dueDate])
+  @@index([category])
 }

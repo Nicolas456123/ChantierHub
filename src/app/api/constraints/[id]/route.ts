@@ -33,6 +33,20 @@ export async function GET(
   }
 }
 
+// Map new categories to old type values for backward compat
+function categoryToType(category: string): string {
+  const contractuelleCategories = [
+    "retard_execution", "livrables_documentaires", "sous_traitance",
+    "personnel_detachement", "contractuelle",
+  ];
+  const reglementaireCategories = [
+    "securite", "hygiene", "environnement", "dechets", "reglementaire",
+  ];
+  if (contractuelleCategories.includes(category)) return "contractuelle";
+  if (reglementaireCategories.includes(category)) return "reglementaire";
+  return "technique";
+}
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -71,12 +85,21 @@ export async function PUT(
       updateData = {
         title: parsed.title,
         description: parsed.description ?? null,
-        type: parsed.type,
+        type: parsed.type || categoryToType(parsed.category),
+        category: parsed.category,
         status: parsed.status,
         dueDate: parsed.dueDate ? new Date(parsed.dueDate) : null,
+        articleRef: parsed.articleRef ?? null,
         penaltyAmount: parsed.penaltyAmount ?? null,
-        penaltyUnit: parsed.penaltyUnit ?? null,
+        penaltyUnit: parsed.penaltyPer ?? parsed.penaltyUnit ?? null,
+        penaltyPer: parsed.penaltyPer ?? null,
+        penaltyFormula: parsed.penaltyFormula ?? null,
+        penaltyCap: parsed.penaltyCap ?? null,
+        penaltyCapUnit: parsed.penaltyCapUnit ?? null,
         penaltyDetails: parsed.penaltyDetails ?? null,
+        escalation: parsed.escalation ?? null,
+        condition: parsed.condition ?? null,
+        sourceDocument: parsed.sourceDocument ?? null,
         responsible: parsed.responsible ?? null,
       };
     }
