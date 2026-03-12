@@ -44,7 +44,9 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-  } catch {
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });
+  } catch (error) {
+    console.error("Register error:", error);
+    const message = error instanceof Error ? error.message : "Erreur serveur";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
