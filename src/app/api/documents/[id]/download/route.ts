@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import path from "path";
-import { readFile } from "fs/promises";
 
 export async function GET(
   _request: NextRequest,
@@ -21,25 +19,8 @@ export async function GET(
       );
     }
 
-    const filePath = path.join(process.cwd(), "public", document.filePath);
-
-    let fileBuffer: Buffer;
-    try {
-      fileBuffer = await readFile(filePath);
-    } catch {
-      return NextResponse.json(
-        { error: "Fichier introuvable sur le serveur" },
-        { status: 404 }
-      );
-    }
-
-    return new NextResponse(new Uint8Array(fileBuffer), {
-      headers: {
-        "Content-Type": document.mimeType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(document.fileName)}"`,
-        "Content-Length": String(fileBuffer.length),
-      },
-    });
+    // Redirect to the Blob URL for download
+    return NextResponse.redirect(document.filePath);
   } catch {
     return NextResponse.json(
       { error: "Erreur lors du téléchargement du document" },

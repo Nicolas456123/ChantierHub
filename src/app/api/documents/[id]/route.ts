@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthor } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
-import path from "path";
-import { unlink } from "fs/promises";
+import { del } from "@vercel/blob";
 
 export async function GET(
   _request: NextRequest,
@@ -48,11 +47,13 @@ export async function DELETE(
       );
     }
 
-    const filePath = path.join(process.cwd(), "public", document.filePath);
-    try {
-      await unlink(filePath);
-    } catch {
-      // File may already be deleted, continue with record removal
+    // Delete from Vercel Blob if it's a blob URL
+    if (document.filePath.includes("blob.vercel-storage.com")) {
+      try {
+        await del(document.filePath);
+      } catch {
+        // Blob may already be deleted, continue
+      }
     }
 
     await prisma.document.delete({ where: { id } });

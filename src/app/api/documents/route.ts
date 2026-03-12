@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getAuthor } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { documentSchema } from "@/lib/validations";
+import { put } from "@vercel/blob";
 import { createId } from "@paralleldrive/cuid2";
 import path from "path";
-import { writeFile, mkdir } from "fs/promises";
 
 export async function GET(request: NextRequest) {
   try {
@@ -55,23 +55,20 @@ export async function POST(request: NextRequest) {
       category,
     });
 
-    const uploadsDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadsDir, { recursive: true });
-
     const ext = path.extname(file.name);
     const uniqueName = `${createId()}${ext}`;
-    const filePath = path.join(uploadsDir, uniqueName);
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    // Upload to Vercel Blob Storage
+    const blob = await put(`documents/${uniqueName}`, file, {
+      access: "public",
+    });
 
     const document = await prisma.document.create({
       data: {
         name: parsed.name,
         description: parsed.description ?? null,
         category: parsed.category,
-        filePath: `/uploads/${uniqueName}`,
+        filePath: blob.url,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
@@ -93,6 +90,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
+    console.error("Document upload error:", error);
     return NextResponse.json(
       { error: "Erreur lors de l'ajout du document" },
       { status: 400 }
