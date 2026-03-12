@@ -22,11 +22,21 @@ const STATUS_TABS = [
   ...REQUEST_STATUSES.map((s) => ({ value: s.value, label: s.label })),
 ];
 
-export default async function DemandesPage() {
+interface DemandesPageProps {
+  searchParams: Promise<{ status?: string }>;
+}
+
+export default async function DemandesPage({ searchParams }: DemandesPageProps) {
+  const { status: statusFilter } = await searchParams;
   const projectId = await getCurrentProjectId();
 
+  const activeTab = statusFilter || "all";
+
   const requests = await prisma.request.findMany({
-    where: { projectId },
+    where: {
+      projectId,
+      ...(activeTab !== "all" ? { status: activeTab } : {}),
+    },
     include: {
       _count: {
         select: { comments: true },
@@ -35,13 +45,11 @@ export default async function DemandesPage() {
     orderBy: { createdAt: "desc" },
   });
 
-  const activeTab = "all";
-
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Demandes & Decisions"
-        description="Gerez les demandes, decisions et approbations du projet"
+        title="Demandes & Décisions"
+        description="Gérez les demandes, décisions et approbations du projet"
         action={
           <Link href="/demandes/nouveau">
             <Button>
@@ -82,14 +90,18 @@ export default async function DemandesPage() {
               Aucune demande
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              Commencez par creer une nouvelle demande.
+              {activeTab === "all"
+                ? "Commencez par créer une nouvelle demande."
+                : "Aucune demande avec ce statut."}
             </p>
-            <Link href="/demandes/nouveau" className="mt-4">
-              <Button variant="outline">
-                <Plus className="h-4 w-4 mr-1" />
-                Creer une demande
-              </Button>
-            </Link>
+            {activeTab === "all" && (
+              <Link href="/demandes/nouveau" className="mt-4">
+                <Button variant="outline">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Créer une demande
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -132,13 +144,13 @@ export default async function DemandesPage() {
                           {req.assignedTo && (
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
-                              Assignee: {req.assignedTo}
+                              Assigné: {req.assignedTo}
                             </span>
                           )}
                           {req.dueDate && (
                             <span className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              Echeance: {formatDate(req.dueDate)}
+                              Échéance: {formatDate(req.dueDate)}
                             </span>
                           )}
                           <span className="flex items-center gap-1">

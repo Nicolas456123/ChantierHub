@@ -12,7 +12,7 @@ import {
   CONSTRAINT_STATUSES,
   PENALTY_UNITS,
 } from "@/lib/constants";
-import { ArrowLeft, Calendar, User, Clock, Euro } from "lucide-react";
+import { ArrowLeft, Calendar, User, Clock, Euro, Pencil } from "lucide-react";
 import { StatusChanger } from "./status-changer";
 import { DeleteButton } from "./delete-button";
 
@@ -80,10 +80,17 @@ export default async function ContrainteDetailPage({
                     )}
                   </div>
                 </div>
-                <DeleteButton
-                  constraintId={constraint.id}
-                  constraintTitle={constraint.title}
-                />
+                <div className="flex items-center gap-2 shrink-0">
+                  <Link href={`/contraintes/${constraint.id}/modifier`}>
+                    <Button variant="outline" size="icon">
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </Link>
+                  <DeleteButton
+                    constraintId={constraint.id}
+                    constraintTitle={constraint.title}
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
