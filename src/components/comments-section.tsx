@@ -15,13 +15,30 @@ import {
   Trash2,
   X,
   Check,
+  ImagePlus,
 } from "lucide-react";
+import { PhotoUpload } from "@/components/photo-upload";
+
+interface Photo {
+  id: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  caption?: string | null;
+  author: string;
+  entityType: string;
+  entityId: string;
+  projectId: string;
+  createdAt: string;
+}
 
 interface Comment {
   id: string;
   content: string;
   author: string;
   createdAt: string;
+  photos?: Photo[];
 }
 
 interface CommentsSectionProps {
@@ -36,6 +53,10 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
   const [submitting, setSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const fileInputRef = useCallback((node: HTMLInputElement | null) => {
+    if (node) node.value = "";
+  }, []);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -43,8 +64,26 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
         `/api/comments?entityType=${entityType}&entityId=${entityId}`
       );
       if (!res.ok) throw new Error();
-      const data = await res.json();
-      setComments(data);
+      const data: Comment[] = await res.json();
+
+      // Fetch photos for all comments in parallel
+      const withPhotos = await Promise.all(
+        data.map(async (comment) => {
+          try {
+            const photosRes = await fetch(
+              `/api/photos?entityType=comment&entityId=${comment.id}`
+            );
+            if (photosRes.ok) {
+              const photos = await photosRes.json();
+              return { ...comment, photos };
+            }
+          } catch {
+            // ignore
+          }
+          return { ...comment, photos: [] };
+        })
+      );
+      setComments(withPhotos);
     } catch {
       // Silent fail on load
     } finally {
@@ -73,8 +112,30 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
       });
       if (!res.ok) throw new Error();
       const comment = await res.json();
-      setComments((prev) => [...prev, comment]);
+
+      // Upload pending photos for this comment
+      const uploadedPhotos: Photo[] = [];
+      for (const file of pendingFiles) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("entityType", "comment");
+        formData.append("entityId", comment.id);
+        try {
+          const photoRes = await fetch("/api/photos", {
+            method: "POST",
+            body: formData,
+          });
+          if (photoRes.ok) {
+            uploadedPhotos.push(await photoRes.json());
+          }
+        } catch {
+          // ignore individual photo errors
+        }
+      }
+
+      setComments((prev) => [...prev, { ...comment, photos: uploadedPhotos }]);
       setNewComment("");
+      setPendingFiles([]);
     } catch {
       toast.error("Erreur lors de l'envoi du commentaire");
     } finally {
@@ -212,35 +273,99 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
                     </div>
                   </div>
                 ) : (
-                  <p className="text-sm whitespace-pre-wrap">
-                    {comment.content}
-                  </p>
+                  <>
+                    <p className="text-sm whitespace-pre-wrap">
+                      {comment.content}
+                    </p>
+                    <div className="mt-2">
+                      <PhotoUpload
+                        entityType="comment"
+                        entityId={comment.id}
+                        photos={comment.photos || []}
+                        onPhotosChange={(photos) =>
+                          setComments((prev) =>
+                            prev.map((c) =>
+                              c.id === comment.id ? { ...c, photos } : c
+                            )
+                          )
+                        }
+                        maxPhotos={5}
+                        compact
+                      />
+                    </div>
+                  </>
                 )}
               </div>
             ))}
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex gap-2">
-          <Textarea
-            placeholder="Ajouter un commentaire..."
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            rows={2}
-            className="resize-none"
-          />
-          <Button
-            type="submit"
-            size="icon"
-            className="shrink-0 self-end"
-            disabled={submitting || !newComment.trim()}
-          >
-            {submitting ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <form onSubmit={handleSubmit} className="space-y-2">
+          <div className="flex gap-2">
+            <Textarea
+              placeholder="Ajouter un commentaire..."
+              value={newComment}
+              onChange={(e) => setNewComment(e.target.value)}
+              rows={2}
+              className="resize-none"
+            />
+            <div className="flex flex-col gap-1 shrink-0 self-end">
+              <label className="cursor-pointer">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    if (e.target.files) {
+                      setPendingFiles((prev) => [
+                        ...prev,
+                        ...Array.from(e.target.files!),
+                      ]);
+                    }
+                  }}
+                />
+                <div className="inline-flex items-center justify-center h-10 w-10 rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors">
+                  <ImagePlus className="h-4 w-4" />
+                </div>
+              </label>
+              <Button
+                type="submit"
+                size="icon"
+                disabled={submitting || !newComment.trim()}
+              >
+                {submitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+          </div>
+          {pendingFiles.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {pendingFiles.map((file, idx) => (
+                <div key={idx} className="relative group">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="h-12 w-12 rounded object-cover border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPendingFiles((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </CardContent>
     </Card>

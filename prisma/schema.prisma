@@ -317,3 +317,20 @@ model Observation {
   @@index([companyId])
   @@index([status])
 }
+
+model Photo {
+  id         String   @id @default(cuid())
+  filePath   String
+  fileName   String
+  fileSize   Int
+  mimeType   String
+  caption    String?
+  author     String
+  entityType String   // "event", "comment", "observation", "request", "task"
+  entityId   String
+  projectId  String
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([projectId])
+}

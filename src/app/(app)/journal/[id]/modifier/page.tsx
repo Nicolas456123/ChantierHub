@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { ArrowLeft, Loader2 } from "lucide-react";
+import { EventPhotos } from "../event-photos";
 
 export default function ModifierEvenementPage() {
   const router = useRouter();
@@ -225,6 +226,11 @@ export default function ModifierEvenementPage() {
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Photos</Label>
+              <EventPhotos eventId={params.id} />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

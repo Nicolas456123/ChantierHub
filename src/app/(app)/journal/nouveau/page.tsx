@@ -63,8 +63,9 @@ export default function NouvelEvenementPage() {
         throw new Error(data.error || "Erreur lors de la création");
       }
 
+      const event = await response.json();
       toast.success("Événement créé avec succès");
-      router.push("/journal");
+      router.push(`/journal/${event.id}`);
     } catch (error) {
       toast.error(
         error instanceof Error

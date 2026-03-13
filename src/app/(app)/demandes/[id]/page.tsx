@@ -11,6 +11,7 @@ import { ArrowLeft } from "lucide-react";
 import { CommentsSection } from "@/components/comments-section";
 import { StatusChanger } from "./status-changer";
 import { EditRequest } from "./edit-request";
+import { RequestPhotos } from "./request-photos";
 
 export const dynamic = "force-dynamic";
 
@@ -71,6 +72,16 @@ export default async function DemandeDetailPage({
               updatedAt: requestItem.updatedAt.toISOString(),
             }}
           />
+
+          {/* Photos */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Photos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RequestPhotos requestId={requestItem.id} />
+            </CardContent>
+          </Card>
 
           {/* Comments */}
           <CommentsSection entityType="request" entityId={requestItem.id} />

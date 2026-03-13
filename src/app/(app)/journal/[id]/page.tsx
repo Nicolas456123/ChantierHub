@@ -12,6 +12,7 @@ import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { ArrowLeft, Pencil } from "lucide-react";
 import { CommentsSection } from "@/components/comments-section";
 import { DeleteEventButton } from "./delete-button";
+import { EventPhotos } from "./event-photos";
 
 export const dynamic = "force-dynamic";
 
@@ -116,6 +117,15 @@ export default async function EventPage({ params }: EventPageProps) {
               </div>
             </>
           )}
+
+          <Separator />
+
+          <div>
+            <p className="text-sm font-medium text-muted-foreground mb-2">
+              Photos
+            </p>
+            <EventPhotos eventId={event.id} />
+          </div>
 
           <Separator />
 

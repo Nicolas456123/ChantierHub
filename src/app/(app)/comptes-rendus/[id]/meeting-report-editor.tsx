@@ -42,6 +42,7 @@ import {
   ClipboardList,
   Palette,
 } from "lucide-react";
+import { ObservationPhotos } from "./observation-photos";
 
 // ─── Types ──────────────────────────────────────────────────────────
 interface Company {
@@ -1123,6 +1124,9 @@ function ObservationsList({
                       {new Date(obs.doneDate).toLocaleDateString("fr-FR")}
                     </span>
                   )}
+                </div>
+                <div className="mt-2">
+                  <ObservationPhotos observationId={obs.id} />
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
