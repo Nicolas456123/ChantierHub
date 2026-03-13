@@ -18,7 +18,6 @@ interface PhotoLightboxProps {
 }
 
 function getPhotoSrc(photo: Photo) {
-  if (photo.filePath.startsWith("http")) return photo.filePath;
   return `/api/photos/${photo.id}/serve`;
 }
 
