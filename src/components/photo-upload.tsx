@@ -144,7 +144,7 @@ export function PhotoUpload({
 
   if (compact) {
     return (
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 flex-wrap">
         {/* Thumbnails */}
         {photos.map((photo, idx) => (
           <div key={photo.id} className="relative group">
@@ -152,14 +152,14 @@ export function PhotoUpload({
             <img
               src={getPhotoSrc(photo)}
               alt={photo.caption || photo.fileName}
-              className="h-12 w-12 rounded object-cover cursor-pointer border border-gray-200"
+              className="h-8 w-8 rounded object-cover cursor-pointer border border-gray-200"
               onClick={() => setLightboxIndex(idx)}
             />
             <button
               onClick={() => handleDelete(photo.id)}
-              className="absolute -top-1.5 -right-1.5 hidden group-hover:flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white"
+              className="absolute -top-1 -right-1 hidden group-hover:flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white"
             >
-              <X className="h-2.5 w-2.5" />
+              <X className="h-2 w-2" />
             </button>
           </div>
         ))}
@@ -170,12 +170,12 @@ export function PhotoUpload({
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="h-12 w-12 rounded border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors disabled:opacity-50"
+              className="h-8 w-8 rounded border border-dashed border-gray-300 flex items-center justify-center text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors disabled:opacity-50"
             >
               {uploading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <ImagePlus className="h-4 w-4" />
+                <ImagePlus className="h-3 w-3" />
               )}
             </button>
             <input

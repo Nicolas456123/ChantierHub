@@ -1124,8 +1124,6 @@ function ObservationsList({
                       {new Date(obs.doneDate).toLocaleDateString("fr-FR")}
                     </span>
                   )}
-                </div>
-                <div className="mt-2">
                   <ObservationPhotos observationId={obs.id} />
                 </div>
               </div>
