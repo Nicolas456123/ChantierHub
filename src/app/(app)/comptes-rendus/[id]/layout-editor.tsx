@@ -232,7 +232,7 @@ export function LayoutEditor({
       });
       if (!res.ok) throw new Error();
       onSave(settings);
-      toast.success("Mise en page sauvegard\u00e9e");
+      toast.success("Mise en page sauvegardée");
     } catch {
       toast.error("Erreur lors de la sauvegarde");
     } finally {
@@ -357,7 +357,7 @@ export function LayoutEditor({
                     <Input
                       value={settings.coverSubtitle ?? ""}
                       onChange={(e) => update("coverSubtitle", e.target.value)}
-                      placeholder="R\u00e9union de chantier"
+                      placeholder="Réunion de chantier"
                       className="h-8 text-xs mt-1"
                     />
                   </div>
@@ -423,7 +423,7 @@ export function LayoutEditor({
                     className="h-8 text-xs w-24"
                   />
                   <div className="h-8 flex-1 rounded border flex items-center justify-center text-xs font-bold" style={{ color: settings.headerColor ?? "#2563eb" }}>
-                    Aper{"\u00e7"}u
+                    Aperçu
                   </div>
                 </div>
               </div>
@@ -442,7 +442,7 @@ export function LayoutEditor({
             </SettingsSection>
 
             {/* Attendance Table */}
-            <SettingsSection title="Tableau de pr\u00e9sence" icon={Table}>
+            <SettingsSection title="Tableau de présence" icon={Table}>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -450,7 +450,7 @@ export function LayoutEditor({
                   onChange={(e) => update("showContacts", e.target.checked)}
                   className="rounded"
                 />
-                <span className="text-xs">Afficher les contacts (t{"\u00e9"}l/email)</span>
+                <span className="text-xs">Afficher les contacts (tél/email)</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -462,23 +462,23 @@ export function LayoutEditor({
                 <span className="text-xs">Afficher la colonne convocation</span>
               </label>
               <p className="text-[10px] text-muted-foreground italic">
-                Glissez les bords des colonnes dans l&apos;aper{"\u00e7"}u pour ajuster les largeurs.
+                Glissez les bords des colonnes dans l&apos;aperçu pour ajuster les largeurs.
               </p>
             </SettingsSection>
 
             {/* Observations */}
             <SettingsSection title="Observations" icon={Type}>
               <p className="text-[10px] text-muted-foreground italic">
-                Glissez les bords des colonnes dans l&apos;aper{"\u00e7"}u pour ajuster les largeurs.
+                Glissez les bords des colonnes dans l&apos;aperçu pour ajuster les largeurs.
               </p>
               <div>
-                <Label className="text-xs mb-1.5 block">Cat{"\u00e9"}gories visibles</Label>
+                <Label className="text-xs mb-1.5 block">Catégories visibles</Label>
                 <div className="space-y-1">
                   {[
                     { key: "administratif", label: "Administratif" },
-                    { key: "etudes", label: "\u00c9tudes" },
-                    { key: "controle", label: "Bureau de contr\u00f4le" },
-                    { key: "avancement", label: "Avancement / Pr\u00e9visions" },
+                    { key: "etudes", label: "Études" },
+                    { key: "controle", label: "Bureau de contrôle" },
+                    { key: "avancement", label: "Avancement / Prévisions" },
                     { key: "visite", label: "Visite de chantier" },
                   ].map(({ key, label }) => {
                     const visible = !settings.visibleCategories || settings.visibleCategories.includes(key);
@@ -512,7 +512,7 @@ export function LayoutEditor({
                 <Input
                   value={settings.footerText ?? ""}
                   onChange={(e) => update("footerText", e.target.value)}
-                  placeholder="Par d\u00e9faut : nom de l'entreprise"
+                  placeholder="Par défaut : nom de l'entreprise"
                   className="h-8 text-xs mt-1"
                 />
               </div>
@@ -525,7 +525,7 @@ export function LayoutEditor({
           {/* Preview header */}
           <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">
-              Aper{"\u00e7"}u
+              Aperçu
             </span>
             {/* Zoom controls */}
             <div className="flex items-center gap-1 bg-background border rounded-md px-1">
