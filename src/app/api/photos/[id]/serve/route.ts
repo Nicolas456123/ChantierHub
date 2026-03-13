@@ -18,9 +18,30 @@ export async function GET(
       );
     }
 
-    // Vercel Blob: redirect to the URL
+    // Vercel Blob (private): download server-side and serve
     if (photo.filePath.includes("blob.vercel-storage.com")) {
-      return NextResponse.redirect(photo.filePath);
+      const blobRes = await fetch(photo.filePath, {
+        headers: {
+          Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+        },
+      });
+
+      if (!blobRes.ok) {
+        return NextResponse.json(
+          { error: "Fichier introuvable dans le storage" },
+          { status: 404 }
+        );
+      }
+
+      const buffer = await blobRes.arrayBuffer();
+
+      return new NextResponse(buffer, {
+        headers: {
+          "Content-Type": photo.mimeType,
+          "Content-Disposition": `inline; filename="${photo.fileName}"`,
+          "Cache-Control": "public, max-age=31536000, immutable",
+        },
+      });
     }
 
     // Local file: serve directly
