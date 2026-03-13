@@ -165,30 +165,14 @@ export function LayoutEditor({
     []
   );
 
-  const updateAttWidth = useCallback(
-    (key: string, value: string) => {
+  const handleColumnResize = useCallback(
+    (table: "attendance" | "observations", key: string, value: string) => {
       setSettings((prev) => ({
         ...prev,
         columnWidths: {
           ...prev.columnWidths,
-          attendance: {
-            ...prev.columnWidths?.attendance,
-            [key]: value,
-          },
-        },
-      }));
-    },
-    []
-  );
-
-  const updateObsWidth = useCallback(
-    (key: string, value: string) => {
-      setSettings((prev) => ({
-        ...prev,
-        columnWidths: {
-          ...prev.columnWidths,
-          observations: {
-            ...prev.columnWidths?.observations,
+          [table]: {
+            ...prev.columnWidths?.[table],
             [key]: value,
           },
         },
@@ -436,50 +420,16 @@ export function LayoutEditor({
                 />
                 <span className="text-xs">Afficher la colonne convocation</span>
               </label>
-              <div>
-                <Label className="text-xs mb-1.5 block">Largeurs des colonnes</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { key: "designation", label: "D\u00e9sign.", def: "25%" },
-                    { key: "societe", label: "Soci\u00e9t\u00e9", def: "20%" },
-                    { key: "nom", label: "Nom", def: "28%" },
-                    { key: "presence", label: "Pr\u00e9s.", def: "12%" },
-                    { key: "convocation", label: "Conv.", def: "15%" },
-                  ].map(({ key, label, def }) => (
-                    <div key={key} className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground w-12 shrink-0">{label}</span>
-                      <Input
-                        value={settings.columnWidths?.attendance?.[key as keyof NonNullable<PdfSettings["columnWidths"]>["attendance"]] ?? def}
-                        onChange={(e) => updateAttWidth(key, e.target.value)}
-                        className="h-6 text-[10px] px-1.5"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                Glissez les bords des colonnes dans l&apos;aper{"\u00e7"}u pour ajuster les largeurs.
+              </p>
             </SettingsSection>
 
             {/* Observations */}
             <SettingsSection title="Observations" icon={Type}>
-              <div>
-                <Label className="text-xs mb-1.5 block">Largeurs des colonnes</Label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {[
-                    { key: "description", label: "Descr.", def: "60%" },
-                    { key: "pourLe", label: "Pour le", def: "20%" },
-                    { key: "faitLe", label: "Fait le", def: "20%" },
-                  ].map(({ key, label, def }) => (
-                    <div key={key} className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground w-12 shrink-0">{label}</span>
-                      <Input
-                        value={settings.columnWidths?.observations?.[key as keyof NonNullable<PdfSettings["columnWidths"]>["observations"]] ?? def}
-                        onChange={(e) => updateObsWidth(key, e.target.value)}
-                        className="h-6 text-[10px] px-1.5"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <p className="text-[10px] text-muted-foreground italic">
+                Glissez les bords des colonnes dans l&apos;aper{"\u00e7"}u pour ajuster les largeurs.
+              </p>
               <div>
                 <Label className="text-xs mb-1.5 block">Cat{"\u00e9"}gories visibles</Label>
                 <div className="space-y-1">
@@ -554,6 +504,7 @@ export function LayoutEditor({
                 projectName={projectName}
                 previousReportNumber={previousReportNumber}
                 pdfSettings={settings}
+                onColumnResize={handleColumnResize}
               />
             </div>
           </div>

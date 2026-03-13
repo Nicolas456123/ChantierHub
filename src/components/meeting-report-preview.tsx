@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useRef, useCallback } from "react";
 
 // ─── Types ──────────────────────────────────────────────────────────
 interface Company {
@@ -96,6 +96,7 @@ interface Props {
   projectName: string;
   previousReportNumber: number | null;
   pdfSettings?: PdfSettings;
+  onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────
@@ -271,12 +272,95 @@ function renderInlineHtml(nodes?: TiptapNode[]): string {
     .join("");
 }
 
+// ─── Resizable Column Header ─────────────────────────────────────────
+function ResizableTh({
+  children,
+  style,
+  colKey,
+  tableType,
+  onResize,
+}: {
+  children: React.ReactNode;
+  style: React.CSSProperties;
+  colKey: string;
+  tableType: "attendance" | "observations";
+  onResize?: (table: "attendance" | "observations", key: string, value: string) => void;
+}) {
+  const thRef = useRef<HTMLTableCellElement>(null);
+  const dragging = useRef(false);
+  const startX = useRef(0);
+  const startW = useRef(0);
+  const tableW = useRef(0);
+
+  const onMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!onResize || !thRef.current) return;
+    e.preventDefault();
+    e.stopPropagation();
+    dragging.current = true;
+    startX.current = e.clientX;
+    startW.current = thRef.current.offsetWidth;
+    const table = thRef.current.closest("table");
+    tableW.current = table?.offsetWidth ?? 600;
+
+    const onMouseMove = (ev: MouseEvent) => {
+      if (!dragging.current) return;
+      const delta = ev.clientX - startX.current;
+      const newW = Math.max(30, startW.current + delta);
+      const pct = Math.round((newW / tableW.current) * 100);
+      onResize(tableType, colKey, `${pct}%`);
+    };
+
+    const onMouseUp = () => {
+      dragging.current = false;
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+  }, [onResize, tableType, colKey]);
+
+  if (!onResize) {
+    return <th ref={thRef} style={style}>{children}</th>;
+  }
+
+  return (
+    <th ref={thRef} style={{ ...style, position: "relative" }}>
+      {children}
+      <div
+        onMouseDown={onMouseDown}
+        style={{
+          position: "absolute",
+          top: 0,
+          right: -3,
+          width: 6,
+          height: "100%",
+          cursor: "col-resize",
+          zIndex: 10,
+          background: "transparent",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLDivElement).style.background = "rgba(37,99,235,0.3)";
+        }}
+        onMouseLeave={(e) => {
+          if (!dragging.current) (e.currentTarget as HTMLDivElement).style.background = "transparent";
+        }}
+      />
+    </th>
+  );
+}
+
 // ─── Preview Component ──────────────────────────────────────────────
 export function MeetingReportPreview({
   report,
   projectName,
   previousReportNumber,
   pdfSettings,
+  onColumnResize,
 }: Props) {
   const accent = pdfSettings?.headerColor || "#2563eb";
   const companyName = pdfSettings?.companyName || "";
@@ -437,12 +521,12 @@ export function MeetingReportPreview({
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px", fontSize: "9px" }}>
           <thead>
             <tr>
-              <th style={{ ...thStyle, width: attWidths.designation }}>D{"\u00e9"}signation</th>
-              <th style={{ ...thStyle, width: attWidths.societe }}>Soci{"\u00e9"}t{"\u00e9"}</th>
-              <th style={{ ...thStyle, width: attWidths.nom }}>Nom / Contact</th>
-              <th style={{ ...thStyle, width: attWidths.presence, textAlign: "center" }}>Pr{"\u00e9"}s.</th>
+              <ResizableTh style={{ ...thStyle, width: attWidths.designation }} colKey="designation" tableType="attendance" onResize={onColumnResize}>D{"\u00e9"}signation</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.societe }} colKey="societe" tableType="attendance" onResize={onColumnResize}>Soci{"\u00e9"}t{"\u00e9"}</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.nom }} colKey="nom" tableType="attendance" onResize={onColumnResize}>Nom / Contact</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.presence, textAlign: "center" }} colKey="presence" tableType="attendance" onResize={onColumnResize}>Pr{"\u00e9"}s.</ResizableTh>
               {showConvocation && (
-                <th style={{ ...thStyle, width: attWidths.convocation, textAlign: "center" }}>Conv.</th>
+                <ResizableTh style={{ ...thStyle, width: attWidths.convocation, textAlign: "center" }} colKey="convocation" tableType="attendance" onResize={onColumnResize}>Conv.</ResizableTh>
               )}
             </tr>
           </thead>
@@ -544,6 +628,7 @@ export function MeetingReportPreview({
                 obsWidths={obsWidths}
                 color={accent}
                 visibleCategories={visibleCategories}
+                onColumnResize={onColumnResize}
               />
             </div>
           );
@@ -559,6 +644,7 @@ export function MeetingReportPreview({
               obsWidths={obsWidths}
               color={accent}
               visibleCategories={visibleCategories}
+              onColumnResize={onColumnResize}
             />
           </div>
         )}
@@ -641,12 +727,14 @@ function ObservationsCategoryTable({
   obsWidths,
   color,
   visibleCategories,
+  onColumnResize,
 }: {
   observations: Observation[];
   previousReportNumber: number | null;
   obsWidths: { description: string; pourLe: string; faitLe: string };
   color: string;
   visibleCategories?: string[];
+  onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
 }) {
   const filteredCategories = visibleCategories && visibleCategories.length > 0
     ? CATEGORY_ORDER.filter((cat) => visibleCategories.includes(cat))
@@ -669,6 +757,7 @@ function ObservationsCategoryTable({
       <tbody>
         {filteredCategories.map((cat) => {
           catIndex++;
+          const isFirst = catIndex === 1;
           return (
             <CategoryRows
               key={cat}
@@ -678,6 +767,7 @@ function ObservationsCategoryTable({
               previousReportNumber={previousReportNumber}
               obsWidths={obsWidths}
               color={color}
+              onColumnResize={isFirst ? onColumnResize : undefined}
             />
           );
         })}
@@ -703,6 +793,7 @@ function CategoryRows({
   previousReportNumber,
   obsWidths,
   color,
+  onColumnResize,
 }: {
   index: number;
   label: string;
@@ -710,46 +801,108 @@ function CategoryRows({
   previousReportNumber: number | null;
   obsWidths: { description: string; pourLe: string; faitLe: string };
   color: string;
+  onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
 }) {
+  const DescCell = onColumnResize ? ResizableTh : "td";
+  const PourLeCell = onColumnResize ? ResizableTh : "td";
+  const FaitLeCell = onColumnResize ? ResizableTh : "td";
+
   return (
     <>
       {/* Category header row */}
       <tr>
-        <td style={{
-          ...tdStyle,
-          fontWeight: "bold",
-          fontSize: "9px",
-          backgroundColor: "#f1f5f9",
-          borderLeft: `3px solid ${color}`,
-          width: obsWidths.description,
-          padding: "5px 8px",
-        }}>
-          {index}. {label}
-        </td>
-        <td style={{
-          ...tdStyle,
-          width: obsWidths.pourLe,
-          textAlign: "center",
-          fontSize: "8px",
-          fontWeight: "bold",
-          backgroundColor: "#f1f5f9",
-          padding: "5px 4px",
-          color: "#555",
-        }}>
-          Pour le
-        </td>
-        <td style={{
-          ...tdStyle,
-          width: obsWidths.faitLe,
-          textAlign: "center",
-          fontSize: "8px",
-          fontWeight: "bold",
-          backgroundColor: "#f1f5f9",
-          padding: "5px 4px",
-          color: "#555",
-        }}>
-          Fait le
-        </td>
+        {onColumnResize ? (
+          <>
+            <ResizableTh
+              style={{
+                ...tdStyle,
+                fontWeight: "bold",
+                fontSize: "9px",
+                backgroundColor: "#f1f5f9",
+                borderLeft: `3px solid ${color}`,
+                width: obsWidths.description,
+                padding: "5px 8px",
+              }}
+              colKey="description"
+              tableType="observations"
+              onResize={onColumnResize}
+            >
+              {index}. {label}
+            </ResizableTh>
+            <ResizableTh
+              style={{
+                ...tdStyle,
+                width: obsWidths.pourLe,
+                textAlign: "center",
+                fontSize: "8px",
+                fontWeight: "bold",
+                backgroundColor: "#f1f5f9",
+                padding: "5px 4px",
+                color: "#555",
+              }}
+              colKey="pourLe"
+              tableType="observations"
+              onResize={onColumnResize}
+            >
+              Pour le
+            </ResizableTh>
+            <ResizableTh
+              style={{
+                ...tdStyle,
+                width: obsWidths.faitLe,
+                textAlign: "center",
+                fontSize: "8px",
+                fontWeight: "bold",
+                backgroundColor: "#f1f5f9",
+                padding: "5px 4px",
+                color: "#555",
+              }}
+              colKey="faitLe"
+              tableType="observations"
+              onResize={onColumnResize}
+            >
+              Fait le
+            </ResizableTh>
+          </>
+        ) : (
+          <>
+            <td style={{
+              ...tdStyle,
+              fontWeight: "bold",
+              fontSize: "9px",
+              backgroundColor: "#f1f5f9",
+              borderLeft: `3px solid ${color}`,
+              width: obsWidths.description,
+              padding: "5px 8px",
+            }}>
+              {index}. {label}
+            </td>
+            <td style={{
+              ...tdStyle,
+              width: obsWidths.pourLe,
+              textAlign: "center",
+              fontSize: "8px",
+              fontWeight: "bold",
+              backgroundColor: "#f1f5f9",
+              padding: "5px 4px",
+              color: "#555",
+            }}>
+              Pour le
+            </td>
+            <td style={{
+              ...tdStyle,
+              width: obsWidths.faitLe,
+              textAlign: "center",
+              fontSize: "8px",
+              fontWeight: "bold",
+              backgroundColor: "#f1f5f9",
+              padding: "5px 4px",
+              color: "#555",
+            }}>
+              Fait le
+            </td>
+          </>
+        )}
       </tr>
       {/* Observation rows */}
       {observations.map((obs) => {
