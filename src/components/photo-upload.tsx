@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { ImagePlus, X, Loader2 } from "lucide-react";
 import { PhotoLightbox } from "./photo-lightbox";
 import { toast } from "sonner";
+import { compressImage } from "@/lib/compress-image";
 
 interface Photo {
   id: string;
@@ -61,13 +62,17 @@ export function PhotoUpload({
       try {
         const newPhotos: Photo[] = [];
 
-        for (const file of filesToUpload) {
+        for (let file of filesToUpload) {
           if (!file.type.startsWith("image/")) {
             toast.error(`${file.name} n'est pas une image`);
             continue;
           }
+
+          // Compresser automatiquement les images > 1 Mo
+          file = await compressImage(file);
+
           if (file.size > 5 * 1024 * 1024) {
-            toast.error(`${file.name} dépasse 5 Mo`);
+            toast.error(`${file.name} dépasse 5 Mo même après compression`);
             continue;
           }
 

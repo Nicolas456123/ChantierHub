@@ -18,6 +18,7 @@ import {
   ImagePlus,
 } from "lucide-react";
 import { PhotoUpload } from "@/components/photo-upload";
+import { compressImage } from "@/lib/compress-image";
 
 interface Photo {
   id: string;
@@ -113,9 +114,10 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
       if (!res.ok) throw new Error();
       const comment = await res.json();
 
-      // Upload pending photos for this comment
+      // Upload pending photos for this comment (compress first)
       const uploadedPhotos: Photo[] = [];
-      for (const file of pendingFiles) {
+      for (let file of pendingFiles) {
+        file = await compressImage(file);
         const formData = new FormData();
         formData.append("file", file);
         formData.append("entityType", "comment");
