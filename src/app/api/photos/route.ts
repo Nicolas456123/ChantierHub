@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (process.env.BLOB_READ_WRITE_TOKEN) {
       const { put } = await import("@vercel/blob");
       const blob = await put(`photos/${uniqueName}`, file, {
-        access: "public",
+        access: "private",
       });
       filePath = blob.url;
     } else {
