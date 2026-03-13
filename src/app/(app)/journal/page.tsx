@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
-import { Plus, BookOpen } from "lucide-react";
+import { Plus, BookOpen, MessageSquare } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,18 @@ export default async function JournalPage() {
     where: { projectId },
     orderBy: { date: "desc" },
   });
+
+  const eventIds = events.map((e) => e.id);
+  const commentCounts = eventIds.length > 0
+    ? await prisma.comment.groupBy({
+        by: ["entityId"],
+        where: { entityType: "event", entityId: { in: eventIds } },
+        _count: true,
+      })
+    : [];
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.entityId, c._count])
+  );
 
   return (
     <div className="space-y-6">
@@ -91,9 +103,15 @@ export default async function JournalPage() {
                             {event.description}
                           </p>
                         )}
-                        <p className="text-xs text-muted-foreground mt-2">
-                          {event.author} &middot; {formatDate(event.date)}
-                        </p>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-2">
+                          <span>{event.author} &middot; {formatDate(event.date)}</span>
+                          {(commentCountMap.get(event.id) ?? 0) > 0 && (
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {commentCountMap.get(event.id)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

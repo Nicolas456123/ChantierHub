@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { readFile } from "fs/promises";
+import path from "path";
 
 export async function GET(
   _request: NextRequest,
@@ -19,21 +21,33 @@ export async function GET(
       );
     }
 
-    // Fetch the file from blob storage using the server-side token
-    const blobResponse = await fetch(document.filePath, {
-      headers: {
-        Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-      },
-    });
+    let fileBuffer: ArrayBuffer;
 
-    if (!blobResponse.ok) {
-      return NextResponse.json(
-        { error: "Fichier introuvable" },
-        { status: 404 }
+    if (document.filePath.startsWith("/uploads/")) {
+      // Local file
+      const localPath = path.join(process.cwd(), "public", document.filePath);
+      const buffer = await readFile(localPath);
+      fileBuffer = buffer.buffer.slice(
+        buffer.byteOffset,
+        buffer.byteOffset + buffer.byteLength
       );
-    }
+    } else {
+      // Vercel Blob
+      const blobResponse = await fetch(document.filePath, {
+        headers: {
+          Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
+        },
+      });
 
-    const fileBuffer = await blobResponse.arrayBuffer();
+      if (!blobResponse.ok) {
+        return NextResponse.json(
+          { error: "Fichier introuvable" },
+          { status: 404 }
+        );
+      }
+
+      fileBuffer = await blobResponse.arrayBuffer();
+    }
 
     return new NextResponse(fileBuffer, {
       headers: {

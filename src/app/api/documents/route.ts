@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma";
 import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { documentSchema } from "@/lib/validations";
-import { put } from "@vercel/blob";
 import { createId } from "@paralleldrive/cuid2";
 import path from "path";
+import { writeFile, mkdir } from "fs/promises";
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,17 +60,31 @@ export async function POST(request: NextRequest) {
     const ext = path.extname(file.name);
     const uniqueName = `${createId()}${ext}`;
 
-    // Upload to Vercel Blob Storage
-    const blob = await put(`documents/${uniqueName}`, file, {
-      access: "private",
-    });
+    let filePath: string;
+
+    if (process.env.BLOB_READ_WRITE_TOKEN) {
+      // Production: upload to Vercel Blob Storage
+      const { put } = await import("@vercel/blob");
+      const blob = await put(`documents/${uniqueName}`, file, {
+        access: "private",
+      });
+      filePath = blob.url;
+    } else {
+      // Development: save to local filesystem
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+      const localPath = path.join(uploadsDir, uniqueName);
+      const buffer = Buffer.from(await file.arrayBuffer());
+      await writeFile(localPath, buffer);
+      filePath = `/uploads/${uniqueName}`;
+    }
 
     const document = await prisma.document.create({
       data: {
         name: parsed.name,
         description: parsed.description ?? null,
         category: parsed.category,
-        filePath: blob.url,
+        filePath,
         fileName: file.name,
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",

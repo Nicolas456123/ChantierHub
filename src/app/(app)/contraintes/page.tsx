@@ -11,7 +11,7 @@ import {
   CONSTRAINT_STATUSES,
   PENALTY_PER,
 } from "@/lib/constants";
-import { Plus, Shield, Calendar, User, Euro } from "lucide-react";
+import { Plus, Shield, Calendar, User, Euro, MessageSquare } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +38,18 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
       select: { status: true, penaltyAmount: true },
     }),
   ]);
+
+  const constraintIds = constraints.map((c) => c.id);
+  const commentCounts = constraintIds.length > 0
+    ? await prisma.comment.groupBy({
+        by: ["entityId"],
+        where: { entityType: "constraint", entityId: { in: constraintIds } },
+        _count: true,
+      })
+    : [];
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.entityId, c._count])
+  );
 
   // Stats
   const stats = {
@@ -195,6 +207,12 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
                               {constraint.responsible}
+                            </span>
+                          )}
+                          {(commentCountMap.get(constraint.id) ?? 0) > 0 && (
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {commentCountMap.get(constraint.id)}
                             </span>
                           )}
                         </div>

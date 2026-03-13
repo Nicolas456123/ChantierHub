@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate } from "@/lib/format";
 import { TASK_STATUSES, PRIORITIES } from "@/lib/constants";
-import { Plus, CheckSquare } from "lucide-react";
+import { Plus, CheckSquare, MessageSquare } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +18,18 @@ export default async function TachesPage() {
     where: { projectId },
     orderBy: { createdAt: "desc" },
   });
+
+  const taskIds = tasks.map((t) => t.id);
+  const commentCounts = taskIds.length > 0
+    ? await prisma.comment.groupBy({
+        by: ["entityId"],
+        where: { entityType: "task", entityId: { in: taskIds } },
+        _count: true,
+      })
+    : [];
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.entityId, c._count])
+  );
 
   const columns = TASK_STATUSES.map((status) => ({
     ...status,
@@ -87,11 +99,17 @@ export default async function TachesPage() {
                               {task.assignedTo}
                             </p>
                           )}
-                          {task.dueDate && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Échéance : {formatDate(task.dueDate)}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
+                            {task.dueDate && (
+                              <span>Échéance : {formatDate(task.dueDate)}</span>
+                            )}
+                            {(commentCountMap.get(task.id) ?? 0) > 0 && (
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {commentCountMap.get(task.id)}
+                              </span>
+                            )}
+                          </div>
                         </CardContent>
                       </Card>
                     </Link>

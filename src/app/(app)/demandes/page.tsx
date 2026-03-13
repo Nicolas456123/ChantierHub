@@ -153,11 +153,13 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
                               Échéance: {formatDate(req.dueDate)}
                             </span>
                           )}
-                          <span className="flex items-center gap-1">
-                            <MessageSquare className="h-3 w-3" />
-                            {req._count.comments} commentaire
-                            {req._count.comments !== 1 ? "s" : ""}
-                          </span>
+                          {req._count.comments > 0 && (
+                            <span className="flex items-center gap-1">
+                              <MessageSquare className="h-3 w-3" />
+                              {req._count.comments} commentaire
+                              {req._count.comments !== 1 ? "s" : ""}
+                            </span>
+                          )}
                         </div>
                       </div>
                       <div className="text-xs text-muted-foreground shrink-0">

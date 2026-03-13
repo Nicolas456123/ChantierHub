@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,11 +43,61 @@ const ENTITY_TYPES = [
   { value: "project", label: "Projet" },
 ];
 
-const TYPE_COLORS: Record<string, string> = {
-  creation: "bg-green-500",
-  modification: "bg-blue-500",
-  suppression: "bg-red-500",
+const TYPE_COLORS: Record<string, { dot: string; ring: string }> = {
+  creation: { dot: "bg-green-500", ring: "ring-green-500/20" },
+  modification: { dot: "bg-blue-500", ring: "ring-blue-500/20" },
+  suppression: { dot: "bg-red-500", ring: "ring-red-500/20" },
+  commentaire: { dot: "bg-gray-400", ring: "ring-gray-400/20" },
+  changement_statut: { dot: "bg-violet-500", ring: "ring-violet-500/20" },
 };
+
+const DEFAULT_COLOR = { dot: "bg-gray-400", ring: "ring-gray-400/20" };
+
+const TYPE_LABELS: Record<string, string> = {
+  creation: "Création",
+  modification: "Modification",
+  suppression: "Suppression",
+  commentaire: "Commentaire",
+  changement_statut: "Changement de statut",
+};
+
+function getDateLabel(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+
+  const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  if (startOfDate.getTime() === startOfToday.getTime()) {
+    return "Aujourd\u2019hui";
+  }
+  if (startOfDate.getTime() === startOfYesterday.getTime()) {
+    return "Hier";
+  }
+
+  return date.toLocaleDateString("fr-FR", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function groupActivitiesByDate(activities: Activity[]): Map<string, Activity[]> {
+  const groups = new Map<string, Activity[]>();
+  for (const activity of activities) {
+    const label = getDateLabel(activity.createdAt);
+    const existing = groups.get(label);
+    if (existing) {
+      existing.push(activity);
+    } else {
+      groups.set(label, [activity]);
+    }
+  }
+  return groups;
+}
 
 export default function HistoriquePage() {
   const [data, setData] = useState<ActivitiesResponse | null>(null);
@@ -81,6 +131,11 @@ export default function HistoriquePage() {
   useEffect(() => {
     fetchActivities();
   }, [fetchActivities]);
+
+  const groupedActivities = useMemo(() => {
+    if (!data?.activities) return new Map<string, Activity[]>();
+    return groupActivitiesByDate(data.activities);
+  }, [data]);
 
   function handleEntityTypeChange(value: string | null) {
     setEntityType(value ?? "");
@@ -122,19 +177,23 @@ export default function HistoriquePage() {
       </div>
 
       {loading ? (
-        <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-3">
-                  <Skeleton className="h-3 w-3 rounded-full" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/4" />
+        <div className="space-y-8">
+          {Array.from({ length: 2 }).map((_, gi) => (
+            <div key={gi} className="space-y-0">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <div className="relative pl-8">
+                <div className="absolute left-[9px] top-0 bottom-0 w-px bg-border" />
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="relative pb-6 last:pb-0">
+                    <Skeleton className="absolute left-[-23px] top-1 h-[18px] w-[18px] rounded-full" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       ) : !data || data.activities.length === 0 ? (
@@ -149,34 +208,73 @@ export default function HistoriquePage() {
         </Card>
       ) : (
         <>
-          <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
-            {data.activities.map((activity) => {
-              const dotColor =
-                TYPE_COLORS[activity.type] ?? "bg-gray-400";
+          <div className="space-y-8">
+            {Array.from(groupedActivities.entries()).map(
+              ([dateLabel, activities]) => (
+                <section key={dateLabel}>
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+                    {dateLabel}
+                  </h2>
 
-              return (
-                <Card key={activity.id}>
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div
-                        className={`h-3 w-3 rounded-full mt-1.5 shrink-0 ${dotColor}`}
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm">
-                          <span className="font-medium">
-                            {activity.author}
-                          </span>{" "}
-                          {activity.description}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {formatRelativeTime(activity.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                  <div className="relative pl-8">
+                    {/* Vertical timeline line */}
+                    <div className="absolute left-[9px] top-1 bottom-1 w-px bg-border" />
+
+                    {activities.map((activity, idx) => {
+                      const colors =
+                        TYPE_COLORS[activity.type] ?? DEFAULT_COLOR;
+                      const typeLabel =
+                        TYPE_LABELS[activity.type] ?? activity.type;
+                      const isLast = idx === activities.length - 1;
+
+                      return (
+                        <div
+                          key={activity.id}
+                          className={`relative ${isLast ? "" : "pb-6"}`}
+                        >
+                          {/* Timeline dot */}
+                          <div
+                            className={`absolute left-[-23px] top-1 h-[18px] w-[18px] rounded-full ${colors.dot} ring-4 ${colors.ring} flex items-center justify-center`}
+                          >
+                            <div className="h-2 w-2 rounded-full bg-white/80" />
+                          </div>
+
+                          {/* Activity content */}
+                          <div className="min-w-0">
+                            <p className="text-sm leading-relaxed">
+                              <span className="font-medium">
+                                {activity.author}
+                              </span>{" "}
+                              {activity.description}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span
+                                className={`inline-block text-xs font-medium px-1.5 py-0.5 rounded ${
+                                  activity.type === "creation"
+                                    ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
+                                    : activity.type === "modification"
+                                      ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
+                                      : activity.type === "suppression"
+                                        ? "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"
+                                        : activity.type === "changement_statut"
+                                          ? "bg-violet-50 text-violet-700 dark:bg-violet-950 dark:text-violet-300"
+                                          : "bg-gray-50 text-gray-700 dark:bg-gray-800 dark:text-gray-300"
+                                }`}
+                              >
+                                {typeLabel}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeTime(activity.createdAt)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </section>
+              )
+            )}
           </div>
 
           {data.totalPages > 1 && (

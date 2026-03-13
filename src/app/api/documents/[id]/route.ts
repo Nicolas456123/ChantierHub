@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getAuthor, getCurrentProjectId } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
-import { del } from "@vercel/blob";
+import { unlink } from "fs/promises";
+import path from "path";
 
 export async function GET(
   _request: NextRequest,
@@ -49,9 +50,18 @@ export async function DELETE(
       );
     }
 
-    // Delete from Vercel Blob if it's a blob URL
-    if (document.filePath.includes("blob.vercel-storage.com")) {
+    // Delete the actual file
+    if (document.filePath.startsWith("/uploads/")) {
+      // Local file
       try {
+        await unlink(path.join(process.cwd(), "public", document.filePath));
+      } catch {
+        // File may already be deleted, continue
+      }
+    } else if (document.filePath.includes("blob.vercel-storage.com")) {
+      // Vercel Blob
+      try {
+        const { del } = await import("@vercel/blob");
         await del(document.filePath);
       } catch {
         // Blob may already be deleted, continue

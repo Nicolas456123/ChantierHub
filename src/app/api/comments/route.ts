@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = commentSchema.parse(body);
 
-    const { entityType, entityId } = body;
+    const entityType = body.entityType as string | undefined;
+    const entityId = body.entityId as string | undefined;
 
     if (!entityType || !entityId || !VALID_ENTITY_TYPES.includes(entityType)) {
       return NextResponse.json(
@@ -56,28 +57,73 @@ export async function POST(request: NextRequest) {
         author,
         entityType,
         entityId,
-        // Also set requestId for backward compat if it's a request
         ...(entityType === "request" ? { requestId: entityId } : {}),
       },
     });
 
-    await logActivity({
+    // Log activity (non-blocking — don't let this break the response)
+    logActivity({
       type: "commentaire",
       description: `a ajouté un commentaire`,
       author,
       entityType: "comment",
       entityId: comment.id,
       projectId,
-    });
+    }).catch(() => {});
 
     return NextResponse.json(comment, { status: 201 });
   } catch (error) {
     if (error instanceof Error && error.message === "Non authentifié") {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
-
+    console.error("Comment creation error:", error);
     return NextResponse.json(
       { error: "Erreur lors de la création du commentaire" },
+      { status: 400 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    await getAuthor();
+    const body = await request.json();
+    const { id, content } = body;
+
+    if (!id || !content?.trim()) {
+      return NextResponse.json({ error: "ID et contenu requis" }, { status: 400 });
+    }
+
+    const comment = await prisma.comment.update({
+      where: { id },
+      data: { content: content.trim() },
+    });
+
+    return NextResponse.json(comment);
+  } catch {
+    return NextResponse.json(
+      { error: "Erreur lors de la modification" },
+      { status: 400 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    await getAuthor();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "ID requis" }, { status: 400 });
+    }
+
+    await prisma.comment.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json(
+      { error: "Erreur lors de la suppression" },
       { status: 400 }
     );
   }

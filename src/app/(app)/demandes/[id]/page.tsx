@@ -5,13 +5,12 @@ import { getCurrentProjectId } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { formatDate, formatDateTime, formatRelativeTime } from "@/lib/format";
+import { formatRelativeTime } from "@/lib/format";
 import { REQUEST_TYPES, REQUEST_STATUSES } from "@/lib/constants";
-import { ArrowLeft, Calendar, User, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { CommentsSection } from "@/components/comments-section";
 import { StatusChanger } from "./status-changer";
-import { DeleteRequest } from "./delete-request";
+import { EditRequest } from "./edit-request";
 
 export const dynamic = "force-dynamic";
 
@@ -56,77 +55,22 @@ export default async function DemandeDetailPage({
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0">
-                  <CardTitle className="text-xl">{requestItem.title}</CardTitle>
-                  <div className="flex flex-wrap items-center gap-2 mt-2">
-                    {typeInfo && (
-                      <Badge variant="outline">{typeInfo.label}</Badge>
-                    )}
-                    {statusInfo && (
-                      <Badge
-                        variant="secondary"
-                        className={statusInfo.color}
-                      >
-                        {statusInfo.label}
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <DeleteRequest requestId={requestItem.id} requestTitle={requestItem.title} />
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {requestItem.description && (
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-1">
-                    Description
-                  </h3>
-                  <p className="text-sm whitespace-pre-wrap">
-                    {requestItem.description}
-                  </p>
-                </div>
-              )}
-
-              <Separator />
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Auteur:</span>
-                  <span className="font-medium">{requestItem.author}</span>
-                </div>
-
-                {requestItem.assignedTo && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <User className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Assignee a:</span>
-                    <span className="font-medium">{requestItem.assignedTo}</span>
-                  </div>
-                )}
-
-                {requestItem.dueDate && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Echeance:</span>
-                    <span className="font-medium">
-                      {formatDate(requestItem.dueDate)}
-                    </span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 text-sm">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Creee le:</span>
-                  <span className="font-medium">
-                    {formatDateTime(requestItem.createdAt)}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EditRequest
+            request={{
+              id: requestItem.id,
+              title: requestItem.title,
+              description: requestItem.description,
+              type: requestItem.type,
+              status: requestItem.status,
+              author: requestItem.author,
+              assignedTo: requestItem.assignedTo,
+              dueDate: requestItem.dueDate
+                ? requestItem.dueDate.toISOString().split("T")[0]
+                : null,
+              createdAt: requestItem.createdAt.toISOString(),
+              updatedAt: requestItem.updatedAt.toISOString(),
+            }}
+          />
 
           {/* Comments */}
           <CommentsSection entityType="request" entityId={requestItem.id} />

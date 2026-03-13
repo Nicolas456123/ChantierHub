@@ -7,7 +7,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatRelativeTime } from "@/lib/format";
-import { MessageSquare, Send, Loader2 } from "lucide-react";
+import {
+  MessageSquare,
+  Send,
+  Loader2,
+  Pencil,
+  Trash2,
+  X,
+  Check,
+} from "lucide-react";
 
 interface Comment {
   id: string;
@@ -26,6 +34,8 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
   const [loading, setLoading] = useState(true);
   const [newComment, setNewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
 
   const fetchComments = useCallback(async () => {
     try {
@@ -72,6 +82,37 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
     }
   }
 
+  async function handleEdit(id: string) {
+    if (!editContent.trim()) return;
+    try {
+      const res = await fetch("/api/comments", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, content: editContent.trim() }),
+      });
+      if (!res.ok) throw new Error();
+      const updated = await res.json();
+      setComments((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, content: updated.content } : c))
+      );
+      setEditingId(null);
+      setEditContent("");
+    } catch {
+      toast.error("Erreur lors de la modification");
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm("Supprimer ce commentaire ?")) return;
+    try {
+      const res = await fetch(`/api/comments?id=${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error();
+      setComments((prev) => prev.filter((c) => c.id !== id));
+    } catch {
+      toast.error("Erreur lors de la suppression");
+    }
+  }
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -104,15 +145,77 @@ export function CommentsSection({ entityType, entityId }: CommentsSectionProps) 
             {comments.map((comment) => (
               <div
                 key={comment.id}
-                className="bg-gray-50 rounded-lg p-3 space-y-1"
+                className="bg-gray-50 rounded-lg p-3 space-y-1 group"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">{comment.author}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {formatRelativeTime(comment.createdAt)}
-                  </span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs text-muted-foreground">
+                      {formatRelativeTime(comment.createdAt)}
+                    </span>
+                    {editingId !== comment.id && (
+                      <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-foreground"
+                          onClick={() => {
+                            setEditingId(comment.id);
+                            setEditContent(comment.content);
+                          }}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                          onClick={() => handleDelete(comment.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">{comment.content}</p>
+                {editingId === comment.id ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      rows={2}
+                      className="resize-none text-sm"
+                      autoFocus
+                    />
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        className="h-7 text-xs"
+                        onClick={() => handleEdit(comment.id)}
+                        disabled={!editContent.trim()}
+                      >
+                        <Check className="h-3 w-3 mr-1" />
+                        Enregistrer
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => {
+                          setEditingId(null);
+                          setEditContent("");
+                        }}
+                      >
+                        <X className="h-3 w-3 mr-1" />
+                        Annuler
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-sm whitespace-pre-wrap">
+                    {comment.content}
+                  </p>
+                )}
               </div>
             ))}
           </div>

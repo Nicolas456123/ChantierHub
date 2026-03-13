@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES } from "@/lib/constants";
-import { Plus, FolderOpen, Download, Eye } from "lucide-react";
+import { Plus, FolderOpen, Download, Eye, MessageSquare } from "lucide-react";
 import { DeleteDocumentButton } from "./delete-document-button";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +19,18 @@ export default async function DocumentsPage() {
     where: { projectId },
     orderBy: { createdAt: "desc" },
   });
+
+  const docIds = documents.map((d) => d.id);
+  const commentCounts = docIds.length > 0
+    ? await prisma.comment.groupBy({
+        by: ["entityId"],
+        where: { entityType: "document", entityId: { in: docIds } },
+        _count: true,
+      })
+    : [];
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.entityId, c._count])
+  );
 
   return (
     <div className="space-y-6">
@@ -78,9 +90,15 @@ export default async function DocumentsPage() {
                         {formatFileSize(doc.fileSize)}
                       </span>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {doc.author} &middot; {formatDate(doc.createdAt)}
-                    </p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>{doc.author} &middot; {formatDate(doc.createdAt)}</span>
+                      {(commentCountMap.get(doc.id) ?? 0) > 0 && (
+                        <span className="flex items-center gap-1">
+                          <MessageSquare className="h-3 w-3" />
+                          {commentCountMap.get(doc.id)}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2 pt-1">
                       <Link
                         href={`/documents/${doc.id}`}

@@ -378,6 +378,27 @@ export default async function PlanningPage() {
                                       </div>
                                     )}
 
+                                  {period.label !== "En retard" && !completed && (() => {
+                                    const daysRemaining = Math.ceil(
+                                      (item.dueDate.getTime() - startOfToday.getTime()) /
+                                        (1000 * 60 * 60 * 24)
+                                    );
+                                    const colorClass =
+                                      daysRemaining <= 3
+                                        ? "text-orange-500"
+                                        : daysRemaining <= 7
+                                          ? "text-amber-500"
+                                          : "text-muted-foreground";
+                                    return (
+                                      <div className={`flex items-center gap-1 mt-2 text-xs ${colorClass}`}>
+                                        <Clock className="h-3 w-3" />
+                                        <span>
+                                          Dans {daysRemaining} jour(s)
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
+
                                   {period.label === "En retard" && !completed && (
                                     <div className="flex items-center gap-1 mt-2 text-xs text-red-600">
                                       <Clock className="h-3 w-3" />

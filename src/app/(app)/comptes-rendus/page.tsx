@@ -12,6 +12,7 @@ import {
   Calendar,
   MapPin,
   AlertCircle,
+  MessageSquare,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,19 @@ export default async function ComptesRendusPage() {
       },
     },
   });
+
+  // Count comments for each report
+  const reportIds = reports.map((r) => r.id);
+  const commentCounts = reportIds.length > 0
+    ? await prisma.comment.groupBy({
+        by: ["entityId"],
+        where: { entityType: "meeting_report", entityId: { in: reportIds } },
+        _count: true,
+      })
+    : [];
+  const commentCountMap = new Map(
+    commentCounts.map((c) => [c.entityId, c._count])
+  );
 
   const stats = {
     total: reports.length,
@@ -117,6 +131,7 @@ export default async function ComptesRendusPage() {
             const urgentObs = report.observations.filter(
               (o) => o.status === "retard" || o.status === "urgent"
             ).length;
+            const commentCount = commentCountMap.get(report.id) ?? 0;
 
             return (
               <Link key={report.id} href={`/comptes-rendus/${report.id}`}>
@@ -159,12 +174,14 @@ export default async function ComptesRendusPage() {
                       )}
                     </div>
 
-                    {(openObs > 0 || report.observations.length > 0) && (
+                    {(openObs > 0 || report.observations.length > 0 || commentCount > 0) && (
                       <div className="mt-3 flex items-center gap-3 text-xs">
-                        <span className="text-muted-foreground">
-                          {report.observations.length} observation
-                          {report.observations.length !== 1 ? "s" : ""}
-                        </span>
+                        {report.observations.length > 0 && (
+                          <span className="text-muted-foreground">
+                            {report.observations.length} observation
+                            {report.observations.length !== 1 ? "s" : ""}
+                          </span>
+                        )}
                         {openObs > 0 && (
                           <span className="text-blue-600 font-medium">
                             {openObs} en cours
@@ -174,6 +191,12 @@ export default async function ComptesRendusPage() {
                           <span className="flex items-center gap-1 text-red-600 font-medium">
                             <AlertCircle className="h-3 w-3" />
                             {urgentObs} en retard
+                          </span>
+                        )}
+                        {commentCount > 0 && (
+                          <span className="flex items-center gap-1 text-muted-foreground">
+                            <MessageSquare className="h-3 w-3" />
+                            {commentCount}
                           </span>
                         )}
                       </div>
