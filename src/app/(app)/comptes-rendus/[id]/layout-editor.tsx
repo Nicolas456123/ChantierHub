@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -157,6 +157,31 @@ export function LayoutEditor({
 }: LayoutEditorProps) {
   const [settings, setSettings] = useState<PdfSettings>({ ...initialSettings });
   const [saving, setSaving] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scale preview to fit container width
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+
+    const A4_WIDTH_PX = 794; // 210mm ≈ 794px
+    const PADDING = 48; // p-6 = 24px each side
+
+    const updateScale = () => {
+      const availableWidth = container.clientWidth - PADDING;
+      if (availableWidth < A4_WIDTH_PX) {
+        setPreviewScale(Math.max(0.4, availableWidth / A4_WIDTH_PX));
+      } else {
+        setPreviewScale(1);
+      }
+    };
+
+    updateScale();
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(container);
+    return () => ro.disconnect();
+  }, []);
 
   const update = useCallback(
     <K extends keyof PdfSettings>(key: K, value: PdfSettings[K]) => {
@@ -227,7 +252,7 @@ export function LayoutEditor({
     <div className="fixed inset-0 z-50 bg-black/60 flex">
       <div className="flex flex-1 bg-background">
         {/* ─── Left Panel: Settings ─── */}
-        <div className="w-[340px] flex-shrink-0 border-r flex flex-col bg-background">
+        <div className="w-[280px] lg:w-[340px] flex-shrink-0 border-r flex flex-col bg-background">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h3 className="font-semibold text-sm">Mise en page</h3>
@@ -497,8 +522,16 @@ export function LayoutEditor({
           </div>
 
           {/* Preview content */}
-          <div className="flex-1 overflow-auto bg-gray-200 p-6">
-            <div className="mx-auto shadow-xl" style={{ maxWidth: "210mm" }}>
+          <div ref={previewContainerRef} className="flex-1 overflow-auto bg-gray-200 p-6">
+            <div
+              className="mx-auto shadow-xl"
+              style={{
+                width: "210mm",
+                transformOrigin: "top center",
+                transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
+                marginBottom: previewScale < 1 ? `calc((${previewScale} - 1) * 100%)` : undefined,
+              }}
+            >
               <MeetingReportPreview
                 report={report}
                 projectName={projectName}
