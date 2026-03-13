@@ -20,6 +20,8 @@ import {
   Type,
   Table,
   Loader2,
+  Minus,
+  Plus,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -157,31 +159,45 @@ export function LayoutEditor({
 }: LayoutEditorProps) {
   const [settings, setSettings] = useState<PdfSettings>({ ...initialSettings });
   const [saving, setSaving] = useState(false);
-  const [previewScale, setPreviewScale] = useState(1);
+  const [zoom, setZoom] = useState<number | "auto">("auto");
+  const [autoScale, setAutoScale] = useState(1);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scale preview to fit container width
+  const A4_WIDTH_PX = 794; // 210mm ≈ 794px
+
+  // Compute auto-fit scale from container size
   useEffect(() => {
     const container = previewContainerRef.current;
     if (!container) return;
-
-    const A4_WIDTH_PX = 794; // 210mm ≈ 794px
-    const PADDING = 48; // p-6 = 24px each side
-
-    const updateScale = () => {
-      const availableWidth = container.clientWidth - PADDING;
-      if (availableWidth < A4_WIDTH_PX) {
-        setPreviewScale(Math.max(0.4, availableWidth / A4_WIDTH_PX));
-      } else {
-        setPreviewScale(1);
-      }
+    const PADDING = 48;
+    const compute = () => {
+      const w = container.clientWidth - PADDING;
+      setAutoScale(w < A4_WIDTH_PX ? Math.max(0.3, w / A4_WIDTH_PX) : 1);
     };
-
-    updateScale();
-    const ro = new ResizeObserver(updateScale);
+    compute();
+    const ro = new ResizeObserver(compute);
     ro.observe(container);
     return () => ro.disconnect();
   }, []);
+
+  const effectiveScale = zoom === "auto" ? autoScale : zoom / 100;
+
+  const ZOOM_STEPS = [50, 75, 100, 125, 150];
+  const zoomIn = useCallback(() => {
+    setZoom((prev) => {
+      const current = prev === "auto" ? Math.round(autoScale * 100) : prev;
+      const next = ZOOM_STEPS.find((s) => s > current);
+      return next ?? current;
+    });
+  }, [autoScale]);
+  const zoomOut = useCallback(() => {
+    setZoom((prev) => {
+      const current = prev === "auto" ? Math.round(autoScale * 100) : prev;
+      const next = [...ZOOM_STEPS].reverse().find((s) => s < current);
+      return next ?? current;
+    });
+  }, [autoScale]);
+  const zoomLabel = zoom === "auto" ? `Auto (${Math.round(autoScale * 100)}%)` : `${zoom}%`;
 
   const update = useCallback(
     <K extends keyof PdfSettings>(key: K, value: PdfSettings[K]) => {
@@ -507,17 +523,33 @@ export function LayoutEditor({
         {/* ─── Right Panel: Live Preview ─── */}
         <div className="flex-1 flex flex-col">
           {/* Preview header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b bg-muted/30">
-            <span className="text-sm text-muted-foreground">
-              Aper{"\u00e7"}u en temps r{"\u00e9"}el
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
+            <span className="text-sm text-muted-foreground whitespace-nowrap">
+              Aper{"\u00e7"}u
             </span>
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 bg-background border rounded-md px-1">
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomOut} title="Zoom -">
+                <Minus className="h-3.5 w-3.5" />
+              </Button>
+              <button
+                onClick={() => setZoom("auto")}
+                className="text-[11px] text-muted-foreground hover:text-foreground px-1.5 min-w-[70px] text-center"
+                title="Ajuster automatiquement"
+              >
+                {zoomLabel}
+              </button>
+              <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomIn} title="Zoom +">
+                <Plus className="h-3.5 w-3.5" />
+              </Button>
+            </div>
             <Button
               size="sm"
               variant="outline"
               onClick={() => window.open(`/api/meeting-reports/${report.id}/pdf`, "_blank")}
             >
               <Download className="h-3.5 w-3.5 mr-1" />
-              Exporter PDF
+              PDF
             </Button>
           </div>
 
@@ -527,9 +559,8 @@ export function LayoutEditor({
               className="mx-auto shadow-xl"
               style={{
                 width: "210mm",
-                transformOrigin: "top center",
-                transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
-                marginBottom: previewScale < 1 ? `calc((${previewScale} - 1) * 100%)` : undefined,
+                transformOrigin: "top left",
+                transform: effectiveScale !== 1 ? `scale(${effectiveScale})` : undefined,
               }}
             >
               <MeetingReportPreview
