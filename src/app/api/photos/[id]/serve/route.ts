@@ -18,24 +18,19 @@ export async function GET(
       );
     }
 
-    // Vercel Blob (private): download server-side and serve
+    // Vercel Blob (private): use SDK get() for authenticated access
     if (photo.filePath.includes("blob.vercel-storage.com")) {
-      const blobRes = await fetch(photo.filePath, {
-        headers: {
-          Authorization: `Bearer ${process.env.BLOB_READ_WRITE_TOKEN}`,
-        },
-      });
+      const { get } = await import("@vercel/blob");
+      const result = await get(photo.filePath, { access: "private" });
 
-      if (!blobRes.ok) {
+      if (!result || result.statusCode !== 200) {
         return NextResponse.json(
           { error: "Fichier introuvable dans le storage" },
           { status: 404 }
         );
       }
 
-      const buffer = await blobRes.arrayBuffer();
-
-      return new NextResponse(buffer, {
+      return new NextResponse(result.stream, {
         headers: {
           "Content-Type": photo.mimeType,
           "Content-Disposition": `inline; filename="${photo.fileName}"`,
