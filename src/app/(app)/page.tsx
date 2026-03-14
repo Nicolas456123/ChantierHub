@@ -18,6 +18,8 @@ import {
   CalendarRange,
   Activity,
   AlertTriangle,
+  Clock,
+  TrendingUp,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +33,7 @@ export default async function DashboardPage() {
     pendingRequests,
     totalTasks,
     activeTasks,
+    completedTasks,
     totalDocuments,
     totalConstraints,
     activeConstraints,
@@ -40,12 +43,14 @@ export default async function DashboardPage() {
     upcomingTasks,
     urgentConstraints,
     upcomingDeadlines,
+    overdueTasks,
   ] = await Promise.all([
     prisma.event.count({ where: { projectId } }),
     prisma.request.count({ where: { projectId } }),
     prisma.request.count({ where: { projectId, status: "en_attente" } }),
     prisma.task.count({ where: { projectId } }),
     prisma.task.count({ where: { projectId, status: { not: "termine" } } }),
+    prisma.task.count({ where: { projectId, status: "termine" } }),
     prisma.document.count({ where: { projectId } }),
     prisma.constraint.count({ where: { projectId } }),
     prisma.constraint.count({ where: { projectId, status: "active" } }),
@@ -72,6 +77,14 @@ export default async function DashboardPage() {
       orderBy: { dueDate: "asc" },
       take: 5,
       select: { id: true, title: true, dueDate: true, status: true, assignedTo: true },
+    }),
+    // Overdue tasks
+    prisma.task.count({
+      where: {
+        projectId,
+        status: { not: "termine" },
+        dueDate: { lt: new Date() },
+      },
     }),
   ]);
 
@@ -173,21 +186,81 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      {/* Alerts: Violated Constraints */}
-      {violatedConstraints > 0 && (
-        <Card className="border-orange-200 bg-orange-50">
-          <CardContent className="flex items-center gap-3 py-4">
-            <AlertTriangle className="h-5 w-5 text-orange-600 shrink-0" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-orange-800">
-                {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} nécessite{violatedConstraints > 1 ? "nt" : ""} votre attention
-              </p>
+      {/* Alerts */}
+      {(violatedConstraints > 0 || overdueTasks > 0 || pendingRequests > 0) && (
+        <div className="space-y-2">
+          {violatedConstraints > 0 && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="flex items-center gap-3 py-3">
+                <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+                <p className="text-sm font-medium text-red-800 flex-1">
+                  {violatedConstraints} contrainte{violatedConstraints > 1 ? "s" : ""} non respectée{violatedConstraints > 1 ? "s" : ""}
+                </p>
+                <Link href="/contraintes?status=non_respectee">
+                  <Button size="sm" variant="outline" className="border-red-300 text-red-700 hover:bg-red-100">
+                    Voir
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+          {overdueTasks > 0 && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="flex items-center gap-3 py-3">
+                <Clock className="h-5 w-5 text-orange-600 shrink-0" />
+                <p className="text-sm font-medium text-orange-800 flex-1">
+                  {overdueTasks} tâche{overdueTasks > 1 ? "s" : ""} en retard
+                </p>
+                <Link href="/taches">
+                  <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
+                    Voir
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+          {pendingRequests > 0 && (
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="flex items-center gap-3 py-3">
+                <FileQuestion className="h-5 w-5 text-yellow-600 shrink-0" />
+                <p className="text-sm font-medium text-yellow-800 flex-1">
+                  {pendingRequests} demande{pendingRequests > 1 ? "s" : ""} en attente de traitement
+                </p>
+                <Link href="/demandes?status=en_attente">
+                  <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-700 hover:bg-yellow-100">
+                    Voir
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      )}
+
+      {/* Task Progress */}
+      {totalTasks > 0 && (
+        <Card>
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium">Avancement des tâches</span>
+              </div>
+              <span className="text-sm font-bold text-green-600">
+                {totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0}%
+              </span>
             </div>
-            <Link href="/contraintes">
-              <Button size="sm" variant="outline" className="border-orange-300 text-orange-700 hover:bg-orange-100">
-                Voir les contraintes
-              </Button>
-            </Link>
+            <div className="w-full bg-gray-100 rounded-full h-2.5">
+              <div
+                className="bg-green-500 h-2.5 rounded-full transition-all"
+                style={{ width: `${totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0}%` }}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-1.5 text-xs text-muted-foreground">
+              <span>{completedTasks} terminée{completedTasks > 1 ? "s" : ""}</span>
+              <span>{activeTasks} en cours</span>
+              <span>{totalTasks} total</span>
+            </div>
           </CardContent>
         </Card>
       )}
