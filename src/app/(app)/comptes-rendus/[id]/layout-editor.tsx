@@ -541,7 +541,7 @@ export function LayoutEditor({
         </div>
 
         {/* ─── Right Panel: Live Preview ─── */}
-        <div className={`flex-1 flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
+        <div className={`flex-1 min-w-0 flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
           {/* Preview header */}
           <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -574,7 +574,7 @@ export function LayoutEditor({
           </div>
 
           {/* Preview content */}
-          <div ref={previewContainerRef} className="flex-1 overflow-auto bg-gray-200 p-4 md:p-6">
+          <div ref={previewContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-200 p-4 md:p-6">
             <div
               className="mx-auto shadow-xl"
               style={{
