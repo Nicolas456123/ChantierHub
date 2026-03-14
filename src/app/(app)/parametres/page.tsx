@@ -956,6 +956,35 @@ function CompanyCard({
 }
 
 // ─── Company Form ───────────────────────────────────────────────────
+const PREDEFINED_LOTS = [
+  { number: "0", label: "Général" },
+  { number: "5", label: "VRD - SEPA" },
+  { number: "6", label: "Clôtures - Portails - CSC" },
+  { number: "7", label: "Espaces verts - Espaces demain" },
+  { number: "8", label: "Infrastructure" },
+  { number: "12", label: "Charpente bois" },
+  { number: "13", label: "Charpente métallique" },
+  { number: "17-18", label: "Couverture - Bardage - Étanchéité" },
+  { number: "20", label: "Dallage" },
+  { number: "21", label: "Menuiserie extérieure" },
+  { number: "23", label: "Fermetures industrielles" },
+  { number: "26", label: "Portes CF" },
+  { number: "29", label: "Plomberie" },
+  { number: "30", label: "Chauffage" },
+  { number: "31", label: "Climatisation" },
+  { number: "32", label: "Électricité" },
+  { number: "35", label: "Cloisons - Doublages" },
+  { number: "36", label: "Faux plafonds" },
+  { number: "39", label: "Menuiseries intérieures" },
+  { number: "40", label: "Métallerie - Serrurerie" },
+  { number: "41-44", label: "Sols durs - Sols souples" },
+  { number: "42", label: "Peinture" },
+  { number: "46", label: "RIA" },
+  { number: "47", label: "Sprinkler" },
+  { number: "51", label: "Cloisons amovibles" },
+  { number: "55", label: "Aménagement - Déco" },
+];
+
 function CompanyForm({
   company,
   onSave,
@@ -1044,21 +1073,52 @@ function CompanyForm({
                 required
               />
             </div>
-            <div>
-              <Label className="mb-1.5 block text-xs">N° de lot</Label>
-              <Input
-                value={lotNumber}
-                onChange={(e) => setLotNumber(e.target.value)}
-                placeholder="Ex: 01"
-              />
-            </div>
-            <div>
-              <Label className="mb-1.5 block text-xs">Intitulé du lot</Label>
-              <Input
-                value={lotLabel}
-                onChange={(e) => setLotLabel(e.target.value)}
-                placeholder="Ex: Gros œuvre"
-              />
+            <div className="sm:col-span-2">
+              <Label className="mb-1.5 block text-xs">Lot</Label>
+              <div className="relative">
+                <select
+                  value={PREDEFINED_LOTS.find(l => l.number === lotNumber) ? lotNumber : "__custom"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "__custom") return;
+                    if (val === "__none") {
+                      setLotNumber("");
+                      setLotLabel("");
+                      return;
+                    }
+                    const lot = PREDEFINED_LOTS.find(l => l.number === val);
+                    if (lot) {
+                      setLotNumber(lot.number);
+                      setLotLabel(lot.label);
+                    }
+                  }}
+                  className="w-full h-9 text-sm border rounded-md px-3 bg-background mb-2"
+                >
+                  <option value="__none">— Sélectionner un lot prédéfini —</option>
+                  {PREDEFINED_LOTS.map((lot) => (
+                    <option key={lot.number} value={lot.number}>
+                      Lot {lot.number} — {lot.label}
+                    </option>
+                  ))}
+                  {lotNumber && !PREDEFINED_LOTS.find(l => l.number === lotNumber) && (
+                    <option value="__custom">Personnalisé : {lotNumber}</option>
+                  )}
+                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    value={lotNumber}
+                    onChange={(e) => setLotNumber(e.target.value)}
+                    placeholder="N° de lot"
+                    className="h-8 text-sm"
+                  />
+                  <Input
+                    value={lotLabel}
+                    onChange={(e) => setLotLabel(e.target.value)}
+                    placeholder="Intitulé du lot"
+                    className="h-8 text-sm"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
