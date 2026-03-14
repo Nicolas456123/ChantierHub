@@ -197,7 +197,9 @@ export function EditTask({ task }: EditTaskProps) {
                 <Label>Statut</Label>
                 <Select value={status} onValueChange={(v) => { if (v) setStatus(v); }}>
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {TASK_STATUSES.find((s) => s.value === status)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {TASK_STATUSES.map((s) => (
@@ -213,7 +215,9 @@ export function EditTask({ task }: EditTaskProps) {
                 <Label>Priorité</Label>
                 <Select value={priority} onValueChange={(v) => { if (v) setPriority(v); }}>
                   <SelectTrigger className="w-full">
-                    <SelectValue />
+                    <SelectValue>
+                      {PRIORITIES.find((p) => p.value === priority)?.label}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     {PRIORITIES.map((p) => (
