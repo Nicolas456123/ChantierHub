@@ -22,6 +22,7 @@ import {
   Loader2,
   Minus,
   Plus,
+  Eye,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -264,11 +265,30 @@ export function LayoutEditor({
     reader.readAsDataURL(file);
   }
 
+  const [mobileTab, setMobileTab] = useState<"settings" | "preview">("settings");
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex">
-      <div className="flex flex-1 bg-background">
+      <div className="flex flex-col md:flex-row flex-1 bg-background">
+        {/* ─── Mobile Tab Switcher ─── */}
+        <div className="md:hidden flex border-b">
+          <button
+            onClick={() => setMobileTab("settings")}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${mobileTab === "settings" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}
+          >
+            <Palette className="h-4 w-4 inline mr-1" />
+            Réglages
+          </button>
+          <button
+            onClick={() => setMobileTab("preview")}
+            className={`flex-1 py-2.5 text-sm font-medium text-center transition-colors ${mobileTab === "preview" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}
+          >
+            <Eye className="h-4 w-4 inline mr-1" />
+            Aperçu
+          </button>
+        </div>
         {/* ─── Left Panel: Settings ─── */}
-        <div className="w-[280px] lg:w-[340px] flex-shrink-0 border-r flex flex-col bg-background">
+        <div className={`w-full md:w-[280px] lg:w-[340px] flex-shrink-0 md:border-r flex flex-col bg-background ${mobileTab !== "settings" ? "hidden md:flex" : "flex"}`}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h3 className="font-semibold text-sm">Mise en page</h3>
@@ -521,7 +541,7 @@ export function LayoutEditor({
         </div>
 
         {/* ─── Right Panel: Live Preview ─── */}
-        <div className="flex-1 flex flex-col">
+        <div className={`flex-1 flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
           {/* Preview header */}
           <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">
