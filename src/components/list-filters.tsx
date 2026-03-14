@@ -1,9 +1,8 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useTransition } from "react";
+import { useCallback, useRef, useTransition } from "react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,7 +17,6 @@ interface ListFiltersProps {
   searchPlaceholder?: string;
   tabs?: FilterTab[];
   tabParam?: string;
-  /** Show search input */
   showSearch?: boolean;
 }
 
@@ -32,6 +30,7 @@ export function ListFilters({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const currentSearch = searchParams.get("q") ?? "";
   const currentTab = searchParams.get(tabParam) ?? "";
@@ -51,6 +50,14 @@ export function ListFilters({
     [router, pathname, searchParams]
   );
 
+  const handleSearchChange = useCallback(
+    (val: string) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      debounceRef.current = setTimeout(() => updateParams("q", val), 300);
+    },
+    [updateParams]
+  );
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       {showSearch && (
@@ -59,12 +66,7 @@ export function ListFilters({
           <Input
             placeholder={searchPlaceholder}
             defaultValue={currentSearch}
-            onChange={(e) => {
-              const val = e.target.value;
-              // Debounce: update after 300ms of no typing
-              const timeout = setTimeout(() => updateParams("q", val), 300);
-              return () => clearTimeout(timeout);
-            }}
+            onChange={(e) => handleSearchChange(e.target.value)}
             className="pl-9 pr-8"
           />
           {currentSearch && (

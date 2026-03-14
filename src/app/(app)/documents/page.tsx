@@ -10,6 +10,7 @@ import { DOCUMENT_CATEGORIES } from "@/lib/constants";
 import { Plus, FolderOpen, Download, Eye, MessageSquare } from "lucide-react";
 import { DeleteDocumentButton } from "./delete-document-button";
 import { ListFilters } from "@/components/list-filters";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 export const dynamic = "force-dynamic";
 
@@ -109,9 +110,30 @@ export default async function DocumentsPage({ searchParams }: Props) {
         </Card>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} document{filtered.length > 1 ? "s" : ""}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} document{filtered.length > 1 ? "s" : ""}
+            </p>
+            <ExportCsvButton
+              filename={`documents-${new Date().toISOString().split("T")[0]}`}
+              columns={[
+                { key: "name", label: "Nom" },
+                { key: "category", label: "Catégorie" },
+                { key: "description", label: "Description" },
+                { key: "fileSize", label: "Taille" },
+                { key: "author", label: "Auteur" },
+                { key: "createdAt", label: "Date" },
+              ]}
+              data={filtered.map((d) => ({
+                name: d.name,
+                category: DOCUMENT_CATEGORIES.find((c) => c.value === d.category)?.label ?? d.category,
+                description: d.description ?? "",
+                fileSize: formatFileSize(d.fileSize),
+                author: d.author,
+                createdAt: formatDate(d.createdAt),
+              }))}
+            />
+          </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((doc) => {
               const category = DOCUMENT_CATEGORIES.find(
