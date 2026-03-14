@@ -23,6 +23,8 @@ import {
   Minus,
   Plus,
   Eye,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -266,6 +268,24 @@ export function LayoutEditor({
   }
 
   const [mobileTab, setMobileTab] = useState<"settings" | "preview">("settings");
+  const [panelCollapsed, setPanelCollapsed] = useState(false);
+
+  // Ctrl+wheel zoom on preview area
+  useEffect(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -5 : 5;
+      setZoom((prev) => {
+        const current = prev === "auto" ? Math.round(autoScale * 100) : prev;
+        return Math.max(20, Math.min(200, current + delta));
+      });
+    };
+    container.addEventListener("wheel", handleWheel, { passive: false });
+    return () => container.removeEventListener("wheel", handleWheel);
+  }, [autoScale]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex">
@@ -288,7 +308,7 @@ export function LayoutEditor({
           </button>
         </div>
         {/* ─── Left Panel: Settings ─── */}
-        <div className={`w-full md:w-[280px] lg:w-[340px] flex-shrink-0 md:border-r flex flex-col bg-background ${mobileTab !== "settings" ? "hidden md:flex" : "flex"}`}>
+        <div className={`w-full md:w-[280px] lg:w-[340px] flex-shrink-0 md:border-r flex-col bg-background ${panelCollapsed ? "hidden" : mobileTab !== "settings" ? "hidden md:flex" : "flex"}`}>
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b">
             <h3 className="font-semibold text-sm">Mise en page</h3>
@@ -544,9 +564,20 @@ export function LayoutEditor({
         <div className={`flex-1 min-w-0 overflow-hidden flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
           {/* Preview header */}
           <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
-            <span className="text-sm text-muted-foreground whitespace-nowrap">
-              Aperçu
-            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 hidden md:flex"
+                onClick={() => setPanelCollapsed((p) => !p)}
+                title={panelCollapsed ? "Afficher les réglages" : "Masquer les réglages"}
+              >
+                {panelCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+              </Button>
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                Aperçu
+              </span>
+            </div>
             {/* Zoom controls */}
             <div className="flex items-center gap-1 bg-background border rounded-md px-1">
               <Button size="icon" variant="ghost" className="h-7 w-7" onClick={zoomOut} title="Zoom -">
@@ -563,14 +594,27 @@ export function LayoutEditor({
                 <Plus className="h-3.5 w-3.5" />
               </Button>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => window.open(`/api/meeting-reports/${report.id}/pdf`, "_blank")}
-            >
-              <Download className="h-3.5 w-3.5 mr-1" />
-              PDF
-            </Button>
+            <div className="flex items-center gap-1">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => window.open(`/api/meeting-reports/${report.id}/pdf`, "_blank")}
+              >
+                <Download className="h-3.5 w-3.5 mr-1" />
+                PDF
+              </Button>
+              {panelCollapsed && (
+                <>
+                  <Button size="sm" onClick={handleSave} disabled={saving}>
+                    {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+                    Sauvegarder
+                  </Button>
+                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onClose}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
 
           {/* Preview content */}
