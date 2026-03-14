@@ -138,12 +138,19 @@ const ATTENDANCE_LABELS: Record<string, string> = {
   non_convoque: "NC",
 };
 
+const ATTENDANCE_COLORS: Record<string, string> = {
+  present: "#16a34a",
+  absent: "#dc2626",
+  excuse: "#6b7280",
+  non_convoque: "#9ca3af",
+};
+
 const CATEGORY_LABELS: Record<string, string> = {
   administratif: "Administratif",
   etudes: "\u00c9tudes",
-  controle: "Bureau de contr\u00f4le",
-  avancement: "Avancement / Pr\u00e9visions",
-  visite: "Visite de chantier",
+  controle: "Contr\u00f4le",
+  avancement: "Avancement",
+  visite: "Visite",
 };
 
 const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
@@ -177,8 +184,8 @@ function sortByLotNumber<T>(items: T[], getCompany: (item: T) => Company | null 
 
 const DEFAULT_ATTENDANCE_WIDTHS = {
   designation: "25%",
-  societe: "20%",
-  nom: "28%",
+  societe: "18%",
+  nom: "30%",
   presence: "12%",
   convocation: "15%",
 };
@@ -227,16 +234,16 @@ function escapeHtml(str: string): string {
 function renderNodeHtml(node: TiptapNode): string {
   switch (node.type) {
     case "paragraph":
-      return `<p style="margin:2px 0;line-height:1.5;font-size:10px">${renderInlineHtml(node.content)}</p>`;
+      return `<p style="margin:3px 0;line-height:1.6;font-size:10px">${renderInlineHtml(node.content)}</p>`;
     case "heading": {
       const level = (node.attrs?.level as number) ?? 2;
       const size = level === 2 ? "12px" : "11px";
-      return `<p style="font-size:${size};font-weight:bold;margin:8px 0 3px 0">${renderInlineHtml(node.content)}</p>`;
+      return `<p style="font-size:${size};font-weight:600;margin:8px 0 4px 0">${renderInlineHtml(node.content)}</p>`;
     }
     case "bulletList":
-      return `<ul style="margin:2px 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ul>`;
+      return `<ul style="margin:3px 0 5px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ul>`;
     case "orderedList":
-      return `<ol style="margin:2px 0 4px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ol>`;
+      return `<ol style="margin:3px 0 5px 0;padding-left:16px;font-size:10px">${(node.content ?? []).map(renderListItemHtml).join("")}</ol>`;
     default:
       return "";
   }
@@ -249,7 +256,7 @@ function renderListItemHtml(item: TiptapNode): string {
     if (child.type === "bulletList" || child.type === "orderedList") return renderNodeHtml(child);
     return "";
   }).join("");
-  return `<li style="margin-bottom:1px">${inner}</li>`;
+  return `<li style="margin-bottom:2px">${inner}</li>`;
 }
 
 function renderInlineHtml(nodes?: TiptapNode[]): string {
@@ -366,10 +373,10 @@ export function MeetingReportPreview({
   const companyName = pdfSettings?.companyName || "";
   const crDate = formatDate(report.date);
   const footerLeft = pdfSettings?.footerText || companyName || projectName;
-  const footerCenter = `Compte-rendu du ${crDate}`;
+  const footerCenter = `CR n\u00b0${report.number} \u2014 ${crDate}`;
   const fontFamily = pdfSettings?.fontFamily || "Arial, Helvetica, sans-serif";
-  const showContacts = pdfSettings?.showContacts !== false; // default true
-  const showConvocation = pdfSettings?.showConvocation !== false; // default true
+  const showContacts = pdfSettings?.showContacts !== false;
+  const showConvocation = pdfSettings?.showConvocation !== false;
   const visibleCategories = pdfSettings?.visibleCategories ?? CATEGORY_ORDER;
 
   const attWidths = { ...DEFAULT_ATTENDANCE_WIDTHS, ...pdfSettings?.columnWidths?.attendance };
@@ -428,7 +435,6 @@ export function MeetingReportPreview({
 
           {/* Center: Title Block */}
           <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-            {/* Thin decorative line */}
             <div style={{ width: "60px", height: "3px", backgroundColor: accent, marginBottom: "24px" }} />
 
             <div style={{ textAlign: "center", marginBottom: "32px" }}>
@@ -469,6 +475,7 @@ export function MeetingReportPreview({
               fontSize: "12px",
               fontWeight: "bold",
               letterSpacing: "1px",
+              borderRadius: "2px",
             }}>
               CR N°{report.number}
             </div>
@@ -483,7 +490,7 @@ export function MeetingReportPreview({
                     maxHeight: "220px",
                     maxWidth: "380px",
                     objectFit: "cover",
-                    border: "1px solid #e5e7eb",
+                    borderRadius: "4px",
                   }}
                 />
               </div>
@@ -501,13 +508,13 @@ export function MeetingReportPreview({
       <div style={{
         width: "210mm",
         minHeight: "297mm",
-        padding: "25px 35px 50px 35px",
+        padding: "28px 35px 50px 35px",
         margin: "0 auto",
         boxSizing: "border-box",
       }}>
         {/* Page header with logo */}
         {pdfSettings?.logoUrl && (
-          <div style={{ marginBottom: "20px" }}>
+          <div style={{ marginBottom: "16px" }}>
             <img
               src={pdfSettings.logoUrl}
               alt="Logo"
@@ -517,33 +524,39 @@ export function MeetingReportPreview({
         )}
 
         {/* ─── Attendance Table ─── */}
-        <SectionTitle color={accent}>Liste de pr{"\u00e9"}sence</SectionTitle>
-        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "12px", fontSize: "9px" }}>
+        <SectionTitle color={accent}>Pr{"\u00e9"}sences</SectionTitle>
+        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "8px", fontSize: "9px" }}>
           <thead>
             <tr>
-              <ResizableTh style={{ ...thStyle, width: attWidths.designation }} colKey="designation" tableType="attendance" onResize={onColumnResize}>D{"\u00e9"}signation</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.societe }} colKey="societe" tableType="attendance" onResize={onColumnResize}>Soci{"\u00e9"}t{"\u00e9"}</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.nom }} colKey="nom" tableType="attendance" onResize={onColumnResize}>Nom / Contact</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.presence, textAlign: "center" }} colKey="presence" tableType="attendance" onResize={onColumnResize}>Pr{"\u00e9"}s.</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.designation, borderBottom: `2px solid ${accent}` }} colKey="designation" tableType="attendance" onResize={onColumnResize}>Lot</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.societe, borderBottom: `2px solid ${accent}` }} colKey="societe" tableType="attendance" onResize={onColumnResize}>Entreprise</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.nom, borderBottom: `2px solid ${accent}` }} colKey="nom" tableType="attendance" onResize={onColumnResize}>Repr{"\u00e9"}sentant</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.presence, textAlign: "center", borderBottom: `2px solid ${accent}` }} colKey="presence" tableType="attendance" onResize={onColumnResize}>Pr{"\u00e9"}s.</ResizableTh>
               {showConvocation && (
-                <ResizableTh style={{ ...thStyle, width: attWidths.convocation, textAlign: "center" }} colKey="convocation" tableType="attendance" onResize={onColumnResize}>Conv.</ResizableTh>
+                <ResizableTh style={{ ...thStyle, width: attWidths.convocation, textAlign: "center", borderBottom: `2px solid ${accent}` }} colKey="convocation" tableType="attendance" onResize={onColumnResize}>Conv.</ResizableTh>
               )}
             </tr>
           </thead>
           <tbody>
             {sortedAttendances.map((att, i) => {
               const contacts = parseContacts(att.company.contacts);
-              const designation = att.company.lotNumber
-                ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` \u2014 ${att.company.lotLabel}` : ""}`
-                : att.company.lotLabel || "\u2014";
+              const lotDisplay = att.company.lotNumber
+                ? `Lot ${att.company.lotNumber}`
+                : "\u2014";
+              const lotLabel = att.company.lotLabel || "";
               const isAlt = i % 2 === 1;
 
               return (
-                <tr key={att.id} style={isAlt ? { backgroundColor: "#f9fafb" } : undefined}>
-                  <td style={{ ...tdStyle, width: attWidths.designation }}>{designation}</td>
+                <tr key={att.id} style={isAlt ? { backgroundColor: "#fafbfc" } : undefined}>
+                  <td style={{ ...tdStyle, width: attWidths.designation }}>
+                    <span style={{ fontWeight: "600" }}>{lotDisplay}</span>
+                    {lotLabel && <span style={{ display: "block", fontSize: "8px", color: "#666" }}>{lotLabel}</span>}
+                  </td>
                   <td style={{ ...tdStyle, width: attWidths.societe, fontWeight: "600" }}>{att.company.name}</td>
                   <td style={{ ...tdStyle, width: attWidths.nom }}>
-                    {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
+                    <span style={{ fontWeight: "500" }}>
+                      {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
+                    </span>
                     {showContacts && contacts.length > 0 && contacts[0].phone && (
                       <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
                         {contacts[0].phone}
@@ -555,9 +568,15 @@ export function MeetingReportPreview({
                       </span>
                     )}
                   </td>
-                  <td style={{ ...tdStyle, width: attWidths.presence, textAlign: "center", fontWeight: "bold" }}>
+                  <td style={{ ...tdStyle, width: attWidths.presence, textAlign: "center" }}>
                     <span style={{
-                      color: att.status === "present" ? "#16a34a" : att.status === "absent" ? "#dc2626" : "#888",
+                      display: "inline-block",
+                      padding: "1px 6px",
+                      borderRadius: "3px",
+                      fontSize: "8px",
+                      fontWeight: "bold",
+                      color: "white",
+                      backgroundColor: ATTENDANCE_COLORS[att.status] ?? "#999",
                     }}>
                       {ATTENDANCE_LABELS[att.status] ?? att.status}
                     </span>
@@ -574,20 +593,21 @@ export function MeetingReportPreview({
         </table>
 
         {/* Attendance legend */}
-        <div style={{ fontSize: "7.5px", color: "#999", marginBottom: "16px", display: "flex", gap: "14px" }}>
-          <span><strong>P</strong> = Pr{"\u00e9"}sent</span>
-          <span><strong>A</strong> = Absent</span>
-          <span><strong>E</strong> = Excus{"\u00e9"}</span>
-          <span><strong>NC</strong> = Non convoqu{"\u00e9"}</span>
+        <div style={{ fontSize: "7.5px", color: "#999", marginBottom: "20px", display: "flex", gap: "14px" }}>
+          <span><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "2px", backgroundColor: "#16a34a", verticalAlign: "middle", marginRight: "3px" }} /> Pr{"\u00e9"}sent</span>
+          <span><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "2px", backgroundColor: "#dc2626", verticalAlign: "middle", marginRight: "3px" }} /> Absent</span>
+          <span><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "2px", backgroundColor: "#6b7280", verticalAlign: "middle", marginRight: "3px" }} /> Excus{"\u00e9"}</span>
+          <span><span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "2px", backgroundColor: "#9ca3af", verticalAlign: "middle", marginRight: "3px" }} /> Non convoqu{"\u00e9"}</span>
         </div>
 
         {/* ─── Next meeting ─── */}
         {report.nextMeetingDate && (
           <div style={{
-            backgroundColor: "#f8f9fa",
+            backgroundColor: "#f8fafc",
             borderLeft: `4px solid ${accent}`,
             padding: "10px 16px",
             marginBottom: "20px",
+            borderRadius: "0 4px 4px 0",
           }}>
             <span style={{ fontSize: "10px", fontWeight: "bold", color: "#333" }}>
               Prochaine r{"\u00e9"}union :{" "}
@@ -601,10 +621,14 @@ export function MeetingReportPreview({
         )}
 
         {/* ─── Généralités ─── */}
-        <SectionTitle color={accent}>G{"\u00e9"}n{"\u00e9"}ralit{"\u00e9"}s</SectionTitle>
-        <div style={{ marginBottom: "24px" }}>
-          <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(report.generalNotes) }} />
-        </div>
+        {report.generalNotes && report.generalNotes !== "{}" && report.generalNotes !== '""' && (
+          <>
+            <SectionTitle color={accent}>G{"\u00e9"}n{"\u00e9"}ralit{"\u00e9"}s</SectionTitle>
+            <div style={{ marginBottom: "24px" }}>
+              <div dangerouslySetInnerHTML={{ __html: renderTiptapHtml(report.generalNotes) }} />
+            </div>
+          </>
+        )}
 
         {/* ─── Company Sections ─── */}
         {sortedSections.map((section) => {
@@ -679,7 +703,7 @@ function SectionTitle({ children, color }: { children: React.ReactNode; color: s
       paddingBottom: "6px",
       borderBottom: `2px solid ${color}`,
       marginBottom: "10px",
-      marginTop: "18px",
+      marginTop: "20px",
       textTransform: "uppercase",
       letterSpacing: "0.5px",
     }}>
@@ -694,29 +718,46 @@ function CompanySectionHeader({ section, color }: { section: Section; color: str
     return <SectionTitle color={color}>{section.title}</SectionTitle>;
   }
 
-  const parts: string[] = [];
-  if (company.lotNumber) parts.push(`Lot ${company.lotNumber}`);
-  if (company.lotLabel) parts.push(company.lotLabel.toUpperCase());
-  parts.push(company.name.toUpperCase());
-
   return (
     <div style={{
       borderLeft: `4px solid ${color}`,
-      backgroundColor: "#f8f9fa",
+      backgroundColor: "#f8fafc",
       padding: "10px 16px",
       marginBottom: "10px",
-      marginTop: "20px",
+      marginTop: "22px",
+      borderRadius: "0 4px 4px 0",
+      display: "flex",
+      alignItems: "baseline",
+      gap: "10px",
     }}>
-      {parts.map((part, i) => (
-        <div key={i} style={{
-          fontSize: i === 0 && company.lotNumber ? "12px" : "11px",
+      {company.lotNumber && (
+        <span style={{
+          fontSize: "12px",
           fontWeight: "bold",
-          color: "#333",
-          lineHeight: "1.4",
+          color: color,
+          whiteSpace: "nowrap",
         }}>
-          {part}
-        </div>
-      ))}
+          Lot {company.lotNumber}
+        </span>
+      )}
+      <div>
+        <span style={{
+          fontSize: "11px",
+          fontWeight: "bold",
+          color: "#222",
+        }}>
+          {company.name}
+        </span>
+        {company.lotLabel && (
+          <span style={{
+            fontSize: "10px",
+            color: "#666",
+            marginLeft: "8px",
+          }}>
+            {company.lotLabel}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -751,17 +792,28 @@ function ObservationsCategoryTable({
     obsByCategory[cat].push(obs);
   }
 
-  let catIndex = 0;
+  // Only show categories that have observations
+  const nonEmptyCategories = filteredCategories.filter((cat) => obsByCategory[cat].length > 0);
+  const hasOther = obsByCategory["_other"].length > 0;
+
+  if (nonEmptyCategories.length === 0 && !hasOther) {
+    return (
+      <div style={{ fontSize: "9px", color: "#bbb", padding: "6px 0", fontStyle: "italic" }}>
+        Aucune observation
+      </div>
+    );
+  }
+
+  let isFirstCategory = true;
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "8px" }}>
       <tbody>
-        {filteredCategories.map((cat) => {
-          catIndex++;
-          const isFirst = catIndex === 1;
+        {nonEmptyCategories.map((cat) => {
+          const isFirst = isFirstCategory;
+          isFirstCategory = false;
           return (
             <CategoryRows
               key={cat}
-              index={catIndex}
               label={CATEGORY_LABELS[cat]}
               observations={obsByCategory[cat]}
               previousReportNumber={previousReportNumber}
@@ -771,14 +823,14 @@ function ObservationsCategoryTable({
             />
           );
         })}
-        {obsByCategory["_other"].length > 0 && (
+        {hasOther && (
           <CategoryRows
-            index={catIndex + 1}
             label="Divers"
             observations={obsByCategory["_other"]}
             previousReportNumber={previousReportNumber}
             obsWidths={obsWidths}
             color={color}
+            onColumnResize={nonEmptyCategories.length === 0 ? onColumnResize : undefined}
           />
         )}
       </tbody>
@@ -787,7 +839,6 @@ function ObservationsCategoryTable({
 }
 
 function CategoryRows({
-  index,
   label,
   observations,
   previousReportNumber,
@@ -795,7 +846,6 @@ function CategoryRows({
   color,
   onColumnResize,
 }: {
-  index: number;
   label: string;
   observations: Observation[];
   previousReportNumber: number | null;
@@ -803,10 +853,6 @@ function CategoryRows({
   color: string;
   onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
 }) {
-  const DescCell = onColumnResize ? ResizableTh : "td";
-  const PourLeCell = onColumnResize ? ResizableTh : "td";
-  const FaitLeCell = onColumnResize ? ResizableTh : "td";
-
   return (
     <>
       {/* Category header row */}
@@ -815,30 +861,20 @@ function CategoryRows({
           <>
             <ResizableTh
               style={{
-                ...tdStyle,
-                fontWeight: "bold",
-                fontSize: "9px",
-                backgroundColor: "#f1f5f9",
+                ...catHeaderStyle,
                 borderLeft: `3px solid ${color}`,
                 width: obsWidths.description,
-                padding: "5px 8px",
               }}
               colKey="description"
               tableType="observations"
               onResize={onColumnResize}
             >
-              {index}. {label}
+              {label}
             </ResizableTh>
             <ResizableTh
               style={{
-                ...tdStyle,
+                ...catHeaderDateStyle,
                 width: obsWidths.pourLe,
-                textAlign: "center",
-                fontSize: "8px",
-                fontWeight: "bold",
-                backgroundColor: "#f1f5f9",
-                padding: "5px 4px",
-                color: "#555",
               }}
               colKey="pourLe"
               tableType="observations"
@@ -848,14 +884,8 @@ function CategoryRows({
             </ResizableTh>
             <ResizableTh
               style={{
-                ...tdStyle,
+                ...catHeaderDateStyle,
                 width: obsWidths.faitLe,
-                textAlign: "center",
-                fontSize: "8px",
-                fontWeight: "bold",
-                backgroundColor: "#f1f5f9",
-                padding: "5px 4px",
-                color: "#555",
               }}
               colKey="faitLe"
               tableType="observations"
@@ -867,38 +897,16 @@ function CategoryRows({
         ) : (
           <>
             <td style={{
-              ...tdStyle,
-              fontWeight: "bold",
-              fontSize: "9px",
-              backgroundColor: "#f1f5f9",
+              ...catHeaderStyle,
               borderLeft: `3px solid ${color}`,
               width: obsWidths.description,
-              padding: "5px 8px",
             }}>
-              {index}. {label}
+              {label}
             </td>
-            <td style={{
-              ...tdStyle,
-              width: obsWidths.pourLe,
-              textAlign: "center",
-              fontSize: "8px",
-              fontWeight: "bold",
-              backgroundColor: "#f1f5f9",
-              padding: "5px 4px",
-              color: "#555",
-            }}>
+            <td style={{ ...catHeaderDateStyle, width: obsWidths.pourLe }}>
               Pour le
             </td>
-            <td style={{
-              ...tdStyle,
-              width: obsWidths.faitLe,
-              textAlign: "center",
-              fontSize: "8px",
-              fontWeight: "bold",
-              backgroundColor: "#f1f5f9",
-              padding: "5px 4px",
-              color: "#555",
-            }}>
+            <td style={{ ...catHeaderDateStyle, width: obsWidths.faitLe }}>
               Fait le
             </td>
           </>
@@ -913,13 +921,12 @@ function CategoryRows({
             <td style={{
               ...tdStyle,
               width: obsWidths.description,
-              padding: "4px 8px 4px 16px",
+              padding: "5px 8px 5px 16px",
               color: isRetardOrUrgent ? "#dc2626" : "#333",
-              fontStyle: isRetardOrUrgent ? "italic" : "normal",
             }}>
               {obs.description}
               {obs.sourceObservationId && previousReportNumber && (
-                <span style={{ fontSize: "7px", color: "#9ca3af", marginLeft: "4px", fontStyle: "normal" }}>
+                <span style={{ fontSize: "7px", color: "#9ca3af", marginLeft: "4px" }}>
                   (CR n°{previousReportNumber})
                 </span>
               )}
@@ -948,13 +955,6 @@ function CategoryRows({
           </tr>
         );
       })}
-      {observations.length === 0 && (
-        <tr>
-          <td style={{ ...tdStyle, width: obsWidths.description, padding: "4px 8px 4px 16px", color: "#d1d5db" }}>{"\u2014"}</td>
-          <td style={{ ...tdStyle, width: obsWidths.pourLe, textAlign: "center" }}>{"\u00a0"}</td>
-          <td style={{ ...tdStyle, width: obsWidths.faitLe, textAlign: "center" }}>{"\u00a0"}</td>
-        </tr>
-      )}
     </>
   );
 }
@@ -966,14 +966,32 @@ const thStyle: React.CSSProperties = {
   color: "#555",
   textTransform: "uppercase",
   letterSpacing: "0.3px",
-  padding: "6px 8px",
+  padding: "7px 8px",
   borderBottom: "2px solid #333",
   textAlign: "left",
 };
 
 const tdStyle: React.CSSProperties = {
-  padding: "4px 8px",
-  borderBottom: "1px solid #e5e7eb",
+  padding: "5px 8px",
+  borderBottom: "1px solid #eef0f2",
   verticalAlign: "top",
   fontSize: "9px",
+};
+
+const catHeaderStyle: React.CSSProperties = {
+  fontWeight: "bold",
+  fontSize: "9px",
+  backgroundColor: "#f1f5f9",
+  padding: "6px 8px",
+  borderBottom: "1px solid #e2e8f0",
+};
+
+const catHeaderDateStyle: React.CSSProperties = {
+  fontSize: "8px",
+  fontWeight: "600",
+  color: "#64748b",
+  textAlign: "center",
+  backgroundColor: "#f1f5f9",
+  padding: "6px 4px",
+  borderBottom: "1px solid #e2e8f0",
 };

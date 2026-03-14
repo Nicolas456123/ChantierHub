@@ -517,9 +517,9 @@ export function LayoutEditor({
                   {[
                     { key: "administratif", label: "Administratif" },
                     { key: "etudes", label: "Études" },
-                    { key: "controle", label: "Bureau de contrôle" },
-                    { key: "avancement", label: "Avancement / Prévisions" },
-                    { key: "visite", label: "Visite de chantier" },
+                    { key: "controle", label: "Contrôle" },
+                    { key: "avancement", label: "Avancement" },
+                    { key: "visite", label: "Visite" },
                   ].map(({ key, label }) => {
                     const visible = !settings.visibleCategories || settings.visibleCategories.includes(key);
                     return (
@@ -620,19 +620,22 @@ export function LayoutEditor({
           {/* Preview content */}
           <div ref={previewContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-200 p-4 md:p-6">
             <div
-              className="mx-auto shadow-xl"
+              className="mx-auto origin-top"
               style={{
                 width: "210mm",
-                zoom: effectiveScale,
+                transform: `scale(${effectiveScale})`,
+                transformOrigin: "top center",
               }}
             >
-              <MeetingReportPreview
-                report={report}
-                projectName={projectName}
-                previousReportNumber={previousReportNumber}
-                pdfSettings={settings}
-                onColumnResize={handleColumnResize}
-              />
+              <div className="shadow-xl bg-white">
+                <MeetingReportPreview
+                  report={report}
+                  projectName={projectName}
+                  previousReportNumber={previousReportNumber}
+                  pdfSettings={settings}
+                  onColumnResize={handleColumnResize}
+                />
+              </div>
             </div>
           </div>
         </div>

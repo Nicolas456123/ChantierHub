@@ -133,9 +133,9 @@ export const OBSERVATION_STATUSES = [
 export const OBSERVATION_CATEGORIES = [
   { value: "administratif", label: "Administratif" },
   { value: "etudes", label: "Études" },
-  { value: "controle", label: "Bureau de contrôle" },
-  { value: "avancement", label: "Avancement / Prévisions" },
-  { value: "visite", label: "Visite de chantier" },
+  { value: "controle", label: "Contrôle" },
+  { value: "avancement", label: "Avancement" },
+  { value: "visite", label: "Visite" },
 ] as const;
 
 export const MEETING_REPORT_STATUSES = [

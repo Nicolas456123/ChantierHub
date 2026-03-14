@@ -132,16 +132,16 @@ const ATTENDANCE_LABELS: Record<string, string> = {
 const ATTENDANCE_COLORS: Record<string, string> = {
   present: "#16a34a",
   absent: "#dc2626",
-  excuse: "#888",
-  non_convoque: "#999",
+  excuse: "#6b7280",
+  non_convoque: "#9ca3af",
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
   administratif: "Administratif",
   etudes: "\u00c9tudes",
-  controle: "Bureau de contr\u00f4le",
-  avancement: "Avancement / Pr\u00e9visions",
-  visite: "Visite de chantier",
+  controle: "Contr\u00f4le",
+  avancement: "Avancement",
+  visite: "Visite",
 };
 
 const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
@@ -175,8 +175,8 @@ function sortByLotNumber<T>(items: T[], getCompany: (item: T) => Company | null 
 
 const DEFAULT_ATTENDANCE_WIDTHS = {
   designation: "25%",
-  societe: "20%",
-  nom: "28%",
+  societe: "18%",
+  nom: "30%",
   presence: "12%",
   convocation: "15%",
 };
@@ -203,7 +203,6 @@ const s = StyleSheet.create({
     padding: "40px 50px",
     color: "#222",
   },
-  // Cover
   coverTop: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -220,7 +219,6 @@ const s = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: "#333",
   },
-  // Page header
   pageHeader: {
     marginBottom: 16,
   },
@@ -229,22 +227,18 @@ const s = StyleSheet.create({
     maxWidth: 130,
     objectFit: "contain" as const,
   },
-  // Section title (colored underline)
   sectionTitle: {
     fontSize: 11,
     fontFamily: "Helvetica-Bold",
     color: "#222",
     paddingBottom: 5,
     marginBottom: 8,
-    marginTop: 16,
+    marginTop: 18,
     textTransform: "uppercase" as const,
     letterSpacing: 0.5,
   },
-  // Tables
   thRow: {
     flexDirection: "row",
-    borderBottomWidth: 2,
-    borderBottomColor: "#333",
   },
   thCell: {
     fontSize: 8,
@@ -252,41 +246,31 @@ const s = StyleSheet.create({
     color: "#555",
     textTransform: "uppercase" as const,
     letterSpacing: 0.3,
-    padding: "5px 6px",
+    padding: "6px 6px",
   },
   tRow: {
     flexDirection: "row",
   },
   tRowAlt: {
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#fafbfc",
   },
   tCell: {
     fontSize: 9,
-    padding: "3px 6px",
+    padding: "4px 6px",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#eef0f2",
   },
-  // Company section header
   companyHeader: {
     borderLeftWidth: 4,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#f8fafc",
     padding: "8px 14px",
-    marginTop: 18,
+    marginTop: 20,
     marginBottom: 8,
+    borderRadius: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  companyHeaderText: {
-    fontSize: 11,
-    fontFamily: "Helvetica-Bold",
-    color: "#333",
-    lineHeight: 1.4,
-  },
-  companyHeaderSub: {
-    fontSize: 10,
-    fontFamily: "Helvetica-Bold",
-    color: "#333",
-    lineHeight: 1.4,
-  },
-  // Category rows
   catRow: {
     flexDirection: "row",
     backgroundColor: "#f1f5f9",
@@ -294,28 +278,27 @@ const s = StyleSheet.create({
   catLabel: {
     fontSize: 9,
     fontFamily: "Helvetica-Bold",
-    padding: "4px 8px",
+    padding: "5px 8px",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#e2e8f0",
   },
   catHeader: {
     fontSize: 8,
     fontFamily: "Helvetica-Bold",
-    color: "#555",
-    padding: "4px 4px",
+    color: "#64748b",
+    padding: "5px 4px",
     textAlign: "center" as const,
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#e2e8f0",
   },
-  // Observation rows
   obsRow: {
     flexDirection: "row",
   },
   obsDesc: {
     fontSize: 9,
-    padding: "3px 6px 3px 14px",
+    padding: "4px 6px 4px 14px",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#eef0f2",
     flex: 1,
   },
   obsDate: {
@@ -323,17 +306,17 @@ const s = StyleSheet.create({
     color: "#888",
     width: "20%",
     textAlign: "center" as const,
-    padding: "3px 4px",
+    padding: "4px 4px",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#eef0f2",
   },
   obsStatus: {
     fontSize: 8,
     width: "20%",
     textAlign: "center" as const,
-    padding: "3px 4px",
+    padding: "4px 4px",
     borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
+    borderBottomColor: "#eef0f2",
   },
   obsBadge: {
     fontSize: 7,
@@ -341,29 +324,26 @@ const s = StyleSheet.create({
   },
   obsEmpty: {
     fontSize: 9,
-    padding: "3px 6px 3px 14px",
-    borderBottomWidth: 0.5,
-    borderBottomColor: "#e5e7eb",
-    color: "#d1d5db",
+    padding: "5px 8px",
+    color: "#bbb",
+    fontStyle: "italic" as const,
   },
-  // Next meeting
   nextMeeting: {
     borderLeftWidth: 4,
-    backgroundColor: "#f8f9fa",
+    backgroundColor: "#f8fafc",
     padding: "8px 14px",
     marginBottom: 16,
+    borderRadius: 2,
   },
-  // Legend
   legend: {
     flexDirection: "row",
     gap: 12,
-    marginBottom: 14,
+    marginBottom: 16,
   },
   legendItem: {
     fontSize: 7.5,
     color: "#999",
   },
-  // Footer
   footer: {
     position: "absolute" as const,
     bottom: 20,
@@ -376,6 +356,16 @@ const s = StyleSheet.create({
     borderTopWidth: 0.5,
     borderTopColor: "#e5e7eb",
     paddingTop: 6,
+  },
+  // Attendance badge
+  attBadge: {
+    fontSize: 7,
+    fontFamily: "Helvetica-Bold",
+    color: "#ffffff",
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 2,
+    textAlign: "center" as const,
   },
 });
 
@@ -390,7 +380,7 @@ export function MeetingReportPDF({
   const companyName = pdfSettings?.companyName || "";
   const crDate = formatDate(report.date);
   const footerLeft = pdfSettings?.footerText || companyName || projectName;
-  const footerCenter = `Compte-rendu du ${crDate}`;
+  const footerCenter = `CR n\u00b0${report.number} \u2014 ${crDate}`;
   const pdfFont = pdfSettings?.fontFamily || "Helvetica";
   const pdfFontBold = pdfFont === "Times-Roman" ? "Times-Bold" : pdfFont === "Courier" ? "Courier-Bold" : "Helvetica-Bold";
   const showContacts = pdfSettings?.showContacts !== false;
@@ -409,7 +399,6 @@ export function MeetingReportPDF({
       {/* ═══════════ COVER PAGE ═══════════ */}
       {pdfSettings?.showCoverPage && (
         <Page size="A4" style={[s.coverPage, { fontFamily: pdfFont }]}>
-          {/* Top: Logo + Company Info */}
           <View style={s.coverTop}>
             {pdfSettings.logoUrl && (
               <Image
@@ -425,11 +414,8 @@ export function MeetingReportPDF({
             )}
           </View>
 
-          {/* Center content */}
           <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-            {/* Decorative line */}
             <View style={{ width: 50, height: 3, backgroundColor: accent, marginBottom: 20 }} />
-
             <Text style={{ fontSize: 22, fontFamily: pdfFontBold, color: "#222", letterSpacing: 2, textTransform: "uppercase" as const }}>
               {pdfSettings.coverTitle || "Compte-rendu"}
             </Text>
@@ -441,7 +427,6 @@ export function MeetingReportPDF({
               {formatDateLong(report.date)}
             </Text>
 
-            {/* Project Info */}
             <Text style={{ fontSize: 16, fontFamily: pdfFontBold, color: "#222", marginTop: 28, marginBottom: 6 }}>
               {projectName}
             </Text>
@@ -454,18 +439,16 @@ export function MeetingReportPDF({
               <Text style={{ fontSize: 9, color: "#888" }}>{pdfSettings.siteAddress}</Text>
             ) : null}
 
-            {/* CR number badge */}
-            <View style={{ backgroundColor: accent, paddingHorizontal: 16, paddingVertical: 5, marginTop: 16 }}>
+            <View style={{ backgroundColor: accent, paddingHorizontal: 16, paddingVertical: 5, marginTop: 16, borderRadius: 2 }}>
               <Text style={{ fontSize: 11, fontFamily: pdfFontBold, color: "#ffffff", letterSpacing: 1 }}>
                 CR N\u00b0{report.number}
               </Text>
             </View>
 
-            {/* Site Photo */}
             {pdfSettings.sitePhotoUrl ? (
               <Image
                 src={pdfSettings.sitePhotoUrl}
-                style={{ marginTop: 30, maxHeight: 190, maxWidth: 340, objectFit: "cover" as const }}
+                style={{ marginTop: 30, maxHeight: 190, maxWidth: 340, objectFit: "cover" as const, borderRadius: 4 }}
               />
             ) : null}
           </View>
@@ -478,7 +461,6 @@ export function MeetingReportPDF({
 
       {/* ═══════════ CONTENT PAGES ═══════════ */}
       <Page size="A4" style={[s.page, { fontFamily: pdfFont }]} wrap>
-        {/* Page header with logo (fixed on every page) */}
         {pdfSettings?.logoUrl && (
           <View style={s.pageHeader} fixed>
             <Image src={pdfSettings.logoUrl} style={s.headerLogo} />
@@ -486,30 +468,29 @@ export function MeetingReportPDF({
         )}
 
         {/* ─── Attendance ─── */}
-        <SectionTitlePdf color={accent} fontBold={pdfFontBold}>Liste de pr\u00e9sence</SectionTitlePdf>
+        <SectionTitlePdf color={accent} fontBold={pdfFontBold}>Pr{"\u00e9"}sences</SectionTitlePdf>
 
-        {/* Attendance table header */}
-        <View style={s.thRow}>
-          <Text style={[s.thCell, { width: attWidths.designation }]}>D\u00e9signation</Text>
-          <Text style={[s.thCell, { width: attWidths.societe }]}>Soci\u00e9t\u00e9</Text>
-          <Text style={[s.thCell, { width: attWidths.nom }]}>Nom / Contact</Text>
-          <Text style={[s.thCell, { width: attWidths.presence, textAlign: "center" }]}>Pr\u00e9s.</Text>
+        <View style={[s.thRow, { borderBottomWidth: 2, borderBottomColor: accent }]}>
+          <Text style={[s.thCell, { width: attWidths.designation }]}>Lot</Text>
+          <Text style={[s.thCell, { width: attWidths.societe }]}>Entreprise</Text>
+          <Text style={[s.thCell, { width: attWidths.nom }]}>Repr{"\u00e9"}sentant</Text>
+          <Text style={[s.thCell, { width: attWidths.presence, textAlign: "center" }]}>Pr{"\u00e9"}s.</Text>
           {showConvocation && (
             <Text style={[s.thCell, { width: attWidths.convocation, textAlign: "center" }]}>Conv.</Text>
           )}
         </View>
 
-        {/* Attendance rows */}
         {sortedAttendances.map((att, i) => {
           const contacts = parseContacts(att.company.contacts);
-          const designation = att.company.lotNumber
-            ? `Lot ${att.company.lotNumber}${att.company.lotLabel ? ` \u2014 ${att.company.lotLabel}` : ""}`
-            : att.company.lotLabel || "\u2014";
+          const lotDisplay = att.company.lotNumber ? `Lot ${att.company.lotNumber}` : "\u2014";
           const isAlt = i % 2 === 1;
 
           return (
             <View key={i} style={[s.tRow, isAlt ? s.tRowAlt : {}]}>
-              <Text style={[s.tCell, { width: attWidths.designation }]}>{designation}</Text>
+              <View style={[s.tCell, { width: attWidths.designation }]}>
+                <Text style={{ fontFamily: pdfFontBold, fontSize: 9 }}>{lotDisplay}</Text>
+                {att.company.lotLabel ? <Text style={{ fontSize: 8, color: "#666" }}>{att.company.lotLabel}</Text> : null}
+              </View>
               <Text style={[s.tCell, { width: attWidths.societe, fontFamily: pdfFontBold }]}>{att.company.name}</Text>
               <View style={[s.tCell, { width: attWidths.nom }]}>
                 <Text style={{ fontSize: 9 }}>
@@ -522,9 +503,13 @@ export function MeetingReportPDF({
                   <Text style={{ fontSize: 7, color: "#888" }}>{contacts[0].email}</Text>
                 ) : null}
               </View>
-              <Text style={[s.tCell, { width: attWidths.presence, textAlign: "center", fontFamily: pdfFontBold, color: ATTENDANCE_COLORS[att.status] ?? "#333" }]}>
-                {ATTENDANCE_LABELS[att.status] ?? att.status}
-              </Text>
+              <View style={[s.tCell, { width: attWidths.presence, alignItems: "center", justifyContent: "center" }]}>
+                <View style={[s.attBadge, { backgroundColor: ATTENDANCE_COLORS[att.status] ?? "#999" }]}>
+                  <Text style={{ fontSize: 7, fontFamily: pdfFontBold, color: "#ffffff" }}>
+                    {ATTENDANCE_LABELS[att.status] ?? att.status}
+                  </Text>
+                </View>
+              </View>
               {showConvocation && (
                 <Text style={[s.tCell, { width: attWidths.convocation, textAlign: "center", fontSize: 8, color: "#555" }]}>
                   {att.status !== "non_convoque" ? "Oui" : "Non"}
@@ -534,19 +519,31 @@ export function MeetingReportPDF({
           );
         })}
 
-        {/* Attendance legend */}
+        {/* Legend with color dots */}
         <View style={s.legend}>
-          <Text style={s.legendItem}><Text style={{ fontFamily: pdfFontBold }}>P</Text> = Pr\u00e9sent</Text>
-          <Text style={s.legendItem}><Text style={{ fontFamily: pdfFontBold }}>A</Text> = Absent</Text>
-          <Text style={s.legendItem}><Text style={{ fontFamily: pdfFontBold }}>E</Text> = Excus\u00e9</Text>
-          <Text style={s.legendItem}><Text style={{ fontFamily: pdfFontBold }}>NC</Text> = Non convoqu\u00e9</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: "#16a34a" }} />
+            <Text style={s.legendItem}>Pr{"\u00e9"}sent</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: "#dc2626" }} />
+            <Text style={s.legendItem}>Absent</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: "#6b7280" }} />
+            <Text style={s.legendItem}>Excus{"\u00e9"}</Text>
+          </View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+            <View style={{ width: 6, height: 6, borderRadius: 1, backgroundColor: "#9ca3af" }} />
+            <Text style={s.legendItem}>Non convoqu{"\u00e9"}</Text>
+          </View>
         </View>
 
         {/* ─── Next meeting ─── */}
         {report.nextMeetingDate && (
           <View style={[s.nextMeeting, { borderLeftColor: accent }]}>
             <Text style={{ fontSize: 10, color: "#333" }}>
-              <Text style={{ fontFamily: pdfFontBold }}>Prochaine r\u00e9union : </Text>
+              <Text style={{ fontFamily: pdfFontBold }}>Prochaine r{"\u00e9"}union : </Text>
               {formatDateLong(report.nextMeetingDate)}
               {report.nextMeetingTime && ` \u00e0 ${report.nextMeetingTime}`}
               {report.location && ` \u2014 ${report.location}`}
@@ -555,10 +552,14 @@ export function MeetingReportPDF({
         )}
 
         {/* ─── Généralités ─── */}
-        <SectionTitlePdf color={accent} fontBold={pdfFontBold}>G\u00e9n\u00e9ralit\u00e9s</SectionTitlePdf>
-        <View style={{ marginBottom: 16 }}>
-          {renderTiptapContent(report.generalNotes)}
-        </View>
+        {report.generalNotes && report.generalNotes !== "{}" && report.generalNotes !== '""' && (
+          <>
+            <SectionTitlePdf color={accent} fontBold={pdfFontBold}>G{"\u00e9"}n{"\u00e9"}ralit{"\u00e9"}s</SectionTitlePdf>
+            <View style={{ marginBottom: 16 }}>
+              {renderTiptapContent(report.generalNotes)}
+            </View>
+          </>
+        )}
 
         {/* ─── Company Sections ─── */}
         {sortedSections.map((section) => {
@@ -590,7 +591,7 @@ export function MeetingReportPDF({
         {/* ─── General observations ─── */}
         {generalObs.length > 0 && (
           <View>
-            <SectionTitlePdf color={accent} fontBold={pdfFontBold}>Observations g\u00e9n\u00e9rales</SectionTitlePdf>
+            <SectionTitlePdf color={accent} fontBold={pdfFontBold}>Observations g{"\u00e9"}n{"\u00e9"}rales</SectionTitlePdf>
             <ObservationsCategoryTablePdf
               observations={generalObs}
               previousReportNumber={previousReportNumber}
@@ -603,7 +604,6 @@ export function MeetingReportPDF({
           </View>
         )}
 
-        {/* Footer */}
         <View style={s.footer} fixed>
           <Text>{footerLeft}</Text>
           <Text>{footerCenter}</Text>
@@ -632,18 +632,23 @@ function CompanySectionHeaderPdf({ section, color, fontBold = "Helvetica-Bold" }
     return <SectionTitlePdf color={color} fontBold={fontBold}>{section.title}</SectionTitlePdf>;
   }
 
-  const parts: string[] = [];
-  if (company.lotNumber) parts.push(`Lot ${company.lotNumber}`);
-  if (company.lotLabel) parts.push(company.lotLabel.toUpperCase());
-  parts.push(company.name.toUpperCase());
-
   return (
     <View style={[s.companyHeader, { borderLeftColor: color }]}>
-      {parts.map((part, i) => (
-        <Text key={i} style={[i === 0 && company.lotNumber ? s.companyHeaderText : s.companyHeaderSub, { fontFamily: fontBold }]}>
-          {part}
+      {company.lotNumber && (
+        <Text style={{ fontSize: 12, fontFamily: fontBold, color: color }}>
+          Lot {company.lotNumber}
         </Text>
-      ))}
+      )}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+        <Text style={{ fontSize: 11, fontFamily: fontBold, color: "#222" }}>
+          {company.name}
+        </Text>
+        {company.lotLabel && (
+          <Text style={{ fontSize: 10, color: "#666" }}>
+            {company.lotLabel}
+          </Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -678,28 +683,34 @@ function ObservationsCategoryTablePdf({
     obsByCategory[cat].push(obs);
   }
 
-  let catIndex = 0;
+  // Only show categories that have observations
+  const nonEmptyCategories = filteredCategories.filter((cat) => obsByCategory[cat].length > 0);
+  const hasOther = obsByCategory["_other"].length > 0;
+
+  if (nonEmptyCategories.length === 0 && !hasOther) {
+    return (
+      <View style={{ marginBottom: 8 }}>
+        <Text style={s.obsEmpty}>Aucune observation</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={{ marginBottom: 8 }}>
-      {filteredCategories.map((cat) => {
-        catIndex++;
-        return (
-          <CategoryRowsPdf
-            key={cat}
-            index={catIndex}
-            label={CATEGORY_LABELS[cat]}
-            observations={obsByCategory[cat]}
-            previousReportNumber={previousReportNumber}
-            obsWidths={obsWidths}
-            color={color}
-            fontBold={fontBold}
-            font={font}
-          />
-        );
-      })}
-      {obsByCategory["_other"].length > 0 && (
+      {nonEmptyCategories.map((cat) => (
         <CategoryRowsPdf
-          index={catIndex + 1}
+          key={cat}
+          label={CATEGORY_LABELS[cat]}
+          observations={obsByCategory[cat]}
+          previousReportNumber={previousReportNumber}
+          obsWidths={obsWidths}
+          color={color}
+          fontBold={fontBold}
+          font={font}
+        />
+      ))}
+      {hasOther && (
+        <CategoryRowsPdf
           label="Divers"
           observations={obsByCategory["_other"]}
           previousReportNumber={previousReportNumber}
@@ -714,7 +725,6 @@ function ObservationsCategoryTablePdf({
 }
 
 function CategoryRowsPdf({
-  index,
   label,
   observations,
   previousReportNumber,
@@ -723,7 +733,6 @@ function CategoryRowsPdf({
   fontBold = "Helvetica-Bold",
   font = "Helvetica",
 }: {
-  index: number;
   label: string;
   observations: Observation[];
   previousReportNumber: number | null;
@@ -734,16 +743,14 @@ function CategoryRowsPdf({
 }) {
   return (
     <View>
-      {/* Category header row */}
       <View style={s.catRow}>
         <Text style={[s.catLabel, { width: obsWidths.description, borderLeftWidth: 3, borderLeftColor: color }]}>
-          {index}. {label}
+          {label}
         </Text>
         <Text style={[s.catHeader, { width: obsWidths.pourLe }]}>Pour le</Text>
         <Text style={[s.catHeader, { width: obsWidths.faitLe }]}>Fait le</Text>
       </View>
 
-      {/* Observation rows */}
       {observations.map((obs, j) => {
         const statusColor = STATUS_COLORS[obs.status] ?? "#333";
         const isRetardOrUrgent = obs.status === "retard" || obs.status === "urgent";
@@ -751,10 +758,10 @@ function CategoryRowsPdf({
         return (
           <View key={j} style={s.obsRow}>
             <View style={[s.obsDesc, { color: isRetardOrUrgent ? "#dc2626" : "#333" }]}>
-              <Text style={{ fontStyle: isRetardOrUrgent ? "italic" : "normal" }}>
+              <Text>
                 {obs.description}
                 {obs.sourceObservationId && previousReportNumber && (
-                  <Text style={s.obsBadge}> (CR n\u00b0{previousReportNumber})</Text>
+                  <Text style={s.obsBadge}> (CR n{"\u00b0"}{previousReportNumber})</Text>
                 )}
               </Text>
             </View>
@@ -772,15 +779,6 @@ function CategoryRowsPdf({
           </View>
         );
       })}
-
-      {/* Empty row */}
-      {observations.length === 0 && (
-        <View style={s.obsRow}>
-          <Text style={[s.obsEmpty, { flex: 1 }]}>{"\u2014"}</Text>
-          <Text style={s.obsDate}> </Text>
-          <Text style={s.obsStatus}> </Text>
-        </View>
-      )}
     </View>
   );
 }
