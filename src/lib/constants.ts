@@ -156,3 +156,41 @@ export const NAV_ITEMS = [
   { href: "/historique", label: "Historique", icon: "Clock" },
   { href: "/parametres", label: "Paramètres", icon: "Settings" },
 ] as const;
+
+export const NAV_GROUPS = [
+  {
+    label: null, // no group header for top item
+    items: [
+      { href: "/", label: "Tableau de bord", icon: "LayoutDashboard" },
+    ],
+  },
+  {
+    label: "Suivi",
+    items: [
+      { href: "/journal", label: "Journal", icon: "BookOpen" },
+      { href: "/planning", label: "Planning", icon: "CalendarRange" },
+      { href: "/historique", label: "Historique", icon: "Clock" },
+    ],
+  },
+  {
+    label: "Gestion",
+    items: [
+      { href: "/taches", label: "Tâches", icon: "CheckSquare" },
+      { href: "/demandes", label: "Demandes", icon: "FileQuestion" },
+      { href: "/documents", label: "Documents", icon: "FolderOpen" },
+    ],
+  },
+  {
+    label: "Chantier",
+    items: [
+      { href: "/comptes-rendus", label: "Comptes-rendus", icon: "ClipboardList" },
+      { href: "/contraintes", label: "Suivi contractuel", icon: "Shield" },
+    ],
+  },
+  {
+    label: null,
+    items: [
+      { href: "/parametres", label: "Paramètres", icon: "Settings" },
+    ],
+  },
+] as const;
