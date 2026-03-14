@@ -165,8 +165,8 @@ function sortByLotNumber<T>(items: T[], getCompany: (item: T) => Company | null 
 
 const DEFAULT_ATTENDANCE_WIDTHS = {
   designation: "25%",
-  societe: "18%",
-  nom: "30%",
+  societe: "22%",
+  nom: "26%",
   presence: "12%",
   convocation: "15%",
 };
@@ -589,22 +589,29 @@ function CompanySectionHeaderPdf({ section, color, fontBold = "Helvetica-Bold" }
   if (!company) return <SectionTitlePdf color={color} fontBold={fontBold}>{section.title}</SectionTitlePdf>;
 
   return (
-    <View style={[s.companyHeader, { borderLeftColor: color }]}>
+    <View style={{
+      borderBottomWidth: 2,
+      borderBottomColor: color,
+      paddingBottom: 5,
+      marginTop: 20,
+      marginBottom: 8,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+    }}>
       {company.lotNumber && (
         <Text style={{ fontSize: 12, fontFamily: fontBold, color: color }}>
           Lot {company.lotNumber}
         </Text>
       )}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-        <Text style={{ fontSize: 11, fontFamily: fontBold, color: "#222" }}>
-          {company.name}
+      <Text style={{ fontSize: 12, fontFamily: fontBold, color: "#222" }}>
+        {company.name}
+      </Text>
+      {company.lotLabel && (
+        <Text style={{ fontSize: 10, color: "#666" }}>
+          {"\u2014"} {company.lotLabel}
         </Text>
-        {company.lotLabel && (
-          <Text style={{ fontSize: 10, color: "#666" }}>
-            {company.lotLabel}
-          </Text>
-        )}
-      </View>
+      )}
     </View>
   );
 }

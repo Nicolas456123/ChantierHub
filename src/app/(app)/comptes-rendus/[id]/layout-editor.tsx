@@ -618,24 +618,21 @@ export function LayoutEditor({
           </div>
 
           {/* Preview content */}
-          <div ref={previewContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-200 p-4 md:p-6">
+          <div ref={previewContainerRef} className="flex-1 overflow-auto bg-gray-200 p-4 md:p-6">
             <div
-              className="mx-auto origin-top"
+              className="mx-auto shadow-xl bg-white"
               style={{
                 width: "210mm",
-                transform: `scale(${effectiveScale})`,
-                transformOrigin: "top center",
+                zoom: effectiveScale,
               }}
             >
-              <div className="shadow-xl bg-white">
-                <MeetingReportPreview
-                  report={report}
-                  projectName={projectName}
-                  previousReportNumber={previousReportNumber}
-                  pdfSettings={settings}
-                  onColumnResize={handleColumnResize}
-                />
-              </div>
+              <MeetingReportPreview
+                report={report}
+                projectName={projectName}
+                previousReportNumber={previousReportNumber}
+                pdfSettings={settings}
+                onColumnResize={handleColumnResize}
+              />
             </div>
           </div>
         </div>

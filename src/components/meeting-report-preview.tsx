@@ -175,8 +175,8 @@ function sortByLotNumber<T>(items: T[], getCompany: (item: T) => Company | null 
 
 const DEFAULT_ATTENDANCE_WIDTHS = {
   designation: "25%",
-  societe: "18%",
-  nom: "30%",
+  societe: "22%",
+  nom: "26%",
   presence: "12%",
   convocation: "15%",
 };
@@ -647,23 +647,21 @@ function CompanySectionHeader({ section, color }: { section: Section; color: str
 
   return (
     <div style={{
-      borderLeft: `4px solid ${color}`,
-      backgroundColor: "#f8fafc",
-      padding: "10px 16px",
+      borderBottom: `2px solid ${color}`,
+      padding: "8px 0",
       marginBottom: "10px",
       marginTop: "22px",
-      borderRadius: "0 4px 4px 0",
-      display: "flex", alignItems: "baseline", gap: "10px",
+      display: "flex", alignItems: "baseline", gap: "8px",
     }}>
       {company.lotNumber && (
-        <span style={{ fontSize: "12px", fontWeight: "bold", color: color, whiteSpace: "nowrap" }}>
+        <span style={{ fontSize: "12px", fontWeight: "bold", color: color }}>
           Lot {company.lotNumber}
         </span>
       )}
-      <div>
-        <span style={{ fontSize: "11px", fontWeight: "bold", color: "#222" }}>{company.name}</span>
-        {company.lotLabel && <span style={{ fontSize: "10px", color: "#666", marginLeft: "8px" }}>{company.lotLabel}</span>}
-      </div>
+      <span style={{ fontSize: "12px", fontWeight: "bold", color: "#222" }}>{company.name}</span>
+      {company.lotLabel && (
+        <span style={{ fontSize: "10px", color: "#666" }}>{"\u2014"} {company.lotLabel}</span>
+      )}
     </div>
   );
 }
