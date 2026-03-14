@@ -12,22 +12,26 @@ import {
   PENALTY_PER,
 } from "@/lib/constants";
 import { Plus, Shield, Calendar, User, Euro, MessageSquare } from "lucide-react";
+import { ListFilters } from "@/components/list-filters";
 
 export const dynamic = "force-dynamic";
 
 interface ContraintesPageProps {
-  searchParams: Promise<{ status?: string; category?: string }>;
+  searchParams: Promise<{ status?: string; category?: string; q?: string }>;
 }
 
 export default async function ContraintesPage({ searchParams }: ContraintesPageProps) {
-  const { status: statusFilter, category: categoryFilter } = await searchParams;
+  const params = await searchParams;
+  const statusFilter = params.status ?? "";
+  const categoryFilter = params.category ?? "";
+  const search = params.q?.trim().toLowerCase() ?? "";
   const projectId = await getCurrentProjectId();
 
   const where: Record<string, unknown> = { projectId };
   if (statusFilter) where.status = statusFilter;
   if (categoryFilter) where.category = categoryFilter;
 
-  const [constraints, allConstraints] = await Promise.all([
+  const [constraintsRaw, allConstraints] = await Promise.all([
     prisma.constraint.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -38,6 +42,16 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
       select: { status: true, penaltyAmount: true },
     }),
   ]);
+
+  const constraints = search
+    ? constraintsRaw.filter(
+        (c) =>
+          c.title.toLowerCase().includes(search) ||
+          (c.description ?? "").toLowerCase().includes(search) ||
+          (c.responsible ?? "").toLowerCase().includes(search) ||
+          (c.articleRef ?? "").toLowerCase().includes(search)
+      )
+    : constraintsRaw;
 
   const constraintIds = constraints.map((c) => c.id);
   const commentCounts = constraintIds.length > 0
@@ -74,43 +88,15 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
         }
       />
 
-      {/* Stats bar */}
-      {stats.total > 0 && (
-        <div className="flex flex-wrap gap-3">
-          <Link href="/contraintes">
-            <Badge
-              variant={!statusFilter && !categoryFilter ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1"
-            >
-              Tous ({stats.total})
-            </Badge>
-          </Link>
-          <Link href="/contraintes?status=active">
-            <Badge
-              variant={statusFilter === "active" ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1 bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100"
-            >
-              Actives ({stats.active})
-            </Badge>
-          </Link>
-          <Link href="/contraintes?status=respectee">
-            <Badge
-              variant={statusFilter === "respectee" ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1 bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-            >
-              Respectées ({stats.respectee})
-            </Badge>
-          </Link>
-          <Link href="/contraintes?status=non_respectee">
-            <Badge
-              variant={statusFilter === "non_respectee" ? "default" : "outline"}
-              className="cursor-pointer px-3 py-1 bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-            >
-              Non respectées ({stats.non_respectee})
-            </Badge>
-          </Link>
-        </div>
-      )}
+      <ListFilters
+        searchPlaceholder="Rechercher une contrainte…"
+        tabs={[
+          { value: "active", label: "Actives", count: stats.active, color: "bg-blue-50 text-blue-700" },
+          { value: "respectee", label: "Respectées", count: stats.respectee, color: "bg-green-50 text-green-700" },
+          { value: "non_respectee", label: "Non respectées", count: stats.non_respectee, color: "bg-red-50 text-red-700" },
+        ]}
+        tabParam="status"
+      />
 
       {constraints.length === 0 ? (
         <Card>

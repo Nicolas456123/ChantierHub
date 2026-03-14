@@ -14,28 +14,24 @@ import {
   User,
   FileQuestion,
 } from "lucide-react";
+import { ListFilters } from "@/components/list-filters";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_TABS = [
-  { value: "all", label: "Toutes" },
-  ...REQUEST_STATUSES.map((s) => ({ value: s.value, label: s.label })),
-];
-
 interface DemandesPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; q?: string }>;
 }
 
 export default async function DemandesPage({ searchParams }: DemandesPageProps) {
-  const { status: statusFilter } = await searchParams;
+  const params = await searchParams;
   const projectId = await getCurrentProjectId();
-
-  const activeTab = statusFilter || "all";
+  const statusFilter = params.status ?? "";
+  const search = params.q?.trim().toLowerCase() ?? "";
 
   const requests = await prisma.request.findMany({
     where: {
       projectId,
-      ...(activeTab !== "all" ? { status: activeTab } : {}),
+      ...(statusFilter ? { status: statusFilter } : {}),
     },
     include: {
       _count: {
@@ -44,6 +40,28 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
     },
     orderBy: { createdAt: "desc" },
   });
+
+  const filtered = search
+    ? requests.filter(
+        (r) =>
+          r.title.toLowerCase().includes(search) ||
+          (r.description ?? "").toLowerCase().includes(search) ||
+          r.author.toLowerCase().includes(search) ||
+          (r.assignedTo ?? "").toLowerCase().includes(search)
+      )
+    : requests;
+
+  // Status counts for tabs
+  const allRequests = await prisma.request.findMany({
+    where: { projectId },
+    select: { status: true },
+  });
+  const statusTabs = REQUEST_STATUSES.map((s) => ({
+    value: s.value,
+    label: s.label,
+    color: s.color,
+    count: allRequests.filter((r) => r.status === s.value).length,
+  }));
 
   return (
     <div className="space-y-6">
@@ -60,41 +78,25 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
         }
       />
 
-      {/* Status filter tabs */}
-      <div className="flex flex-wrap gap-2">
-        {STATUS_TABS.map((tab) => (
-          <Link
-            key={tab.value}
-            href={
-              tab.value === "all"
-                ? "/demandes"
-                : `/demandes?status=${tab.value}`
-            }
-          >
-            <Button
-              variant={activeTab === tab.value ? "default" : "outline"}
-              size="sm"
-            >
-              {tab.label}
-            </Button>
-          </Link>
-        ))}
-      </div>
+      <ListFilters
+        searchPlaceholder="Rechercher une demande…"
+        tabs={statusTabs}
+        tabParam="status"
+      />
 
-      {/* Request list */}
-      {requests.length === 0 ? (
+      {filtered.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <FileQuestion className="h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium text-muted-foreground">
-              Aucune demande
+              {search || statusFilter ? "Aucun résultat" : "Aucune demande"}
             </p>
             <p className="text-sm text-muted-foreground mt-1">
-              {activeTab === "all"
-                ? "Commencez par créer une nouvelle demande."
-                : "Aucune demande avec ce statut."}
+              {search || statusFilter
+                ? "Essayez de modifier vos filtres."
+                : "Commencez par créer une nouvelle demande."}
             </p>
-            {activeTab === "all" && (
+            {!search && !statusFilter && (
               <Link href="/demandes/nouveau" className="mt-4">
                 <Button variant="outline">
                   <Plus className="h-4 w-4 mr-1" />
@@ -105,73 +107,86 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
-          {requests.map((req) => {
-            const statusInfo = REQUEST_STATUSES.find(
-              (s) => s.value === req.status
-            );
-            const typeInfo = REQUEST_TYPES.find((t) => t.value === req.type);
+        <>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length} demande{filtered.length > 1 ? "s" : ""}
+          </p>
+          <div
+            className="grid gap-4"
+            style={{
+              gridTemplateColumns:
+                "repeat(auto-fill, minmax(min(100%, 350px), 1fr))",
+            }}
+          >
+            {filtered.map((req) => {
+              const statusInfo = REQUEST_STATUSES.find(
+                (s) => s.value === req.status
+              );
+              const typeInfo = REQUEST_TYPES.find((t) => t.value === req.type);
 
-            return (
-              <Link key={req.id} href={`/demandes/${req.id}`}>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium truncate">{req.title}</h3>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          {typeInfo && (
-                            <Badge variant="outline" className="text-xs">
-                              {typeInfo.label}
-                            </Badge>
-                          )}
-                          {statusInfo && (
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs ${statusInfo.color}`}
-                            >
-                              {statusInfo.label}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {req.author}
-                          </span>
-                          {req.assignedTo && (
+              return (
+                <Link key={req.id} href={`/demandes/${req.id}`}>
+                  <Card className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-medium truncate">
+                              {req.title}
+                            </h3>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {typeInfo && (
+                              <Badge variant="outline" className="text-xs">
+                                {typeInfo.label}
+                              </Badge>
+                            )}
+                            {statusInfo && (
+                              <Badge
+                                variant="secondary"
+                                className={`text-xs ${statusInfo.color}`}
+                              >
+                                {statusInfo.label}
+                              </Badge>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-4 mt-3 text-xs text-muted-foreground">
                             <span className="flex items-center gap-1">
                               <User className="h-3 w-3" />
-                              Assigné: {req.assignedTo}
+                              {req.author}
                             </span>
-                          )}
-                          {req.dueDate && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              Échéance: {formatDate(req.dueDate)}
-                            </span>
-                          )}
-                          {req._count.comments > 0 && (
-                            <span className="flex items-center gap-1">
-                              <MessageSquare className="h-3 w-3" />
-                              {req._count.comments} commentaire
-                              {req._count.comments !== 1 ? "s" : ""}
-                            </span>
-                          )}
+                            {req.assignedTo && (
+                              <span className="flex items-center gap-1">
+                                <User className="h-3 w-3" />
+                                Assigné: {req.assignedTo}
+                              </span>
+                            )}
+                            {req.dueDate && (
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                Échéance: {formatDate(req.dueDate)}
+                              </span>
+                            )}
+                            {req._count.comments > 0 && (
+                              <span className="flex items-center gap-1">
+                                <MessageSquare className="h-3 w-3" />
+                                {req._count.comments} commentaire
+                                {req._count.comments !== 1 ? "s" : ""}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground shrink-0">
+                          {formatRelativeTime(req.createdAt)}
                         </div>
                       </div>
-                      <div className="text-xs text-muted-foreground shrink-0">
-                        {formatRelativeTime(req.createdAt)}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
