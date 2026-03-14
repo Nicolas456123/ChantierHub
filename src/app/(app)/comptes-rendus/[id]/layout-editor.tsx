@@ -269,7 +269,7 @@ export function LayoutEditor({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 flex">
-      <div className="flex flex-col md:flex-row flex-1 bg-background">
+      <div className="flex flex-col md:flex-row flex-1 overflow-hidden bg-background">
         {/* ─── Mobile Tab Switcher ─── */}
         <div className="md:hidden flex border-b">
           <button
@@ -541,7 +541,7 @@ export function LayoutEditor({
         </div>
 
         {/* ─── Right Panel: Live Preview ─── */}
-        <div className={`flex-1 min-w-0 flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
+        <div className={`flex-1 min-w-0 overflow-hidden flex flex-col ${mobileTab !== "preview" ? "hidden md:flex" : "flex"}`}>
           {/* Preview header */}
           <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30 gap-2">
             <span className="text-sm text-muted-foreground whitespace-nowrap">
