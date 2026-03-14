@@ -117,18 +117,19 @@ function formatDateLong(date: string): string {
   });
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  en_cours: "En cours",
-  fait: "Fait",
-  retard: "RETARD",
-  urgent: "URGENT",
-};
+function formatDateShort(date: string): string {
+  return new Date(date).toLocaleDateString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}
 
-const STATUS_COLORS: Record<string, string> = {
-  en_cours: "#2563eb",
-  fait: "#16a34a",
-  retard: "#dc2626",
-  urgent: "#ea580c",
+const CATEGORY_LABELS: Record<string, string> = {
+  administratif: "Admin.",
+  etudes: "\u00c9tudes",
+  controle: "Contr\u00f4le",
+  avancement: "Avanc.",
+  visite: "Visite",
 };
 
 const ATTENDANCE_LABELS: Record<string, string> = {
@@ -144,16 +145,6 @@ const ATTENDANCE_COLORS: Record<string, string> = {
   excuse: "#6b7280",
   non_convoque: "#9ca3af",
 };
-
-const CATEGORY_LABELS: Record<string, string> = {
-  administratif: "Administratif",
-  etudes: "\u00c9tudes",
-  controle: "Contr\u00f4le",
-  avancement: "Avancement",
-  visite: "Visite",
-};
-
-const CATEGORY_ORDER = ["administratif", "etudes", "controle", "avancement", "visite"];
 
 interface Contact {
   name: string;
@@ -190,12 +181,6 @@ const DEFAULT_ATTENDANCE_WIDTHS = {
   convocation: "15%",
 };
 
-const DEFAULT_OBSERVATION_WIDTHS = {
-  description: "60%",
-  pourLe: "20%",
-  faitLe: "20%",
-};
-
 // ─── Tiptap JSON → HTML ─────────────────────────────────────────────
 interface TiptapNode {
   type: string;
@@ -207,22 +192,16 @@ interface TiptapNode {
 
 function renderTiptapHtml(json: string): string {
   if (!json || json === "{}" || json === '""') return "";
-
   let doc: TiptapNode;
   try {
     const parsed = JSON.parse(json);
-    if (parsed.type === "doc") {
-      doc = parsed;
-    } else if (parsed.text && typeof parsed.text === "string") {
-      return `<p>${escapeHtml(parsed.text)}</p>`;
-    } else {
-      return "";
-    }
+    if (parsed.type === "doc") doc = parsed;
+    else if (parsed.text && typeof parsed.text === "string") return `<p>${escapeHtml(parsed.text)}</p>`;
+    else return "";
   } catch {
     if (json.trim()) return `<p>${escapeHtml(json)}</p>`;
     return "";
   }
-
   if (!doc.content) return "";
   return doc.content.map(renderNodeHtml).join("");
 }
@@ -361,6 +340,20 @@ function ResizableTh({
   );
 }
 
+// ─── Status rendering ───────────────────────────────────────────────
+function renderObsStatus(obs: Observation): { text: string; color: string; bold: boolean } {
+  if (obs.status === "fait") {
+    return {
+      text: obs.doneDate ? `Fait ${formatDateShort(obs.doneDate)}` : "Fait",
+      color: "#16a34a",
+      bold: false,
+    };
+  }
+  if (obs.status === "retard") return { text: "RETARD", color: "#dc2626", bold: true };
+  if (obs.status === "urgent") return { text: "URGENT", color: "#ea580c", bold: true };
+  return { text: "En cours", color: "#2563eb", bold: false };
+}
+
 // ─── Preview Component ──────────────────────────────────────────────
 export function MeetingReportPreview({
   report,
@@ -377,10 +370,8 @@ export function MeetingReportPreview({
   const fontFamily = pdfSettings?.fontFamily || "Arial, Helvetica, sans-serif";
   const showContacts = pdfSettings?.showContacts !== false;
   const showConvocation = pdfSettings?.showConvocation !== false;
-  const visibleCategories = pdfSettings?.visibleCategories ?? CATEGORY_ORDER;
 
   const attWidths = { ...DEFAULT_ATTENDANCE_WIDTHS, ...pdfSettings?.columnWidths?.attendance };
-  const obsWidths = { ...DEFAULT_OBSERVATION_WIDTHS, ...pdfSettings?.columnWidths?.observations };
 
   const sortedAttendances = useMemo(
     () => sortByLotNumber(report.attendances, (att) => att.company),
@@ -401,107 +392,7 @@ export function MeetingReportPreview({
     <div className="bg-white text-black" style={{ fontFamily, fontSize: "10px", color: "#222" }}>
       {/* ═══════════ COVER PAGE ═══════════ */}
       {pdfSettings?.showCoverPage && (
-        <div style={{
-          width: "210mm",
-          minHeight: "297mm",
-          padding: "40px 50px",
-          display: "flex",
-          flexDirection: "column",
-          borderBottom: "2px solid #e5e7eb",
-          marginBottom: "20px",
-          pageBreakAfter: "always",
-          boxSizing: "border-box",
-        }}>
-          {/* Top: Logo + Company Info */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "60px" }}>
-            {pdfSettings.logoUrl && (
-              <img
-                src={pdfSettings.logoUrl}
-                alt="Logo"
-                style={{ maxHeight: "70px", maxWidth: "180px", objectFit: "contain" }}
-              />
-            )}
-            {(companyName || pdfSettings.companyAddress) && (
-              <div style={{ fontSize: "9px", color: "#555", lineHeight: "1.5" }}>
-                {companyName && <div style={{ fontWeight: "bold", fontSize: "10px", color: "#333" }}>{companyName}</div>}
-                {pdfSettings.companyAddress && (
-                  <div style={{ whiteSpace: "pre-line", marginTop: "2px" }}>
-                    {pdfSettings.companyAddress}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Center: Title Block */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-            <div style={{ width: "60px", height: "3px", backgroundColor: accent, marginBottom: "24px" }} />
-
-            <div style={{ textAlign: "center", marginBottom: "32px" }}>
-              <div style={{ fontSize: "24px", fontWeight: "bold", color: "#222", letterSpacing: "2px", textTransform: "uppercase" }}>
-                {pdfSettings.coverTitle || "Compte-rendu"}
-              </div>
-              <div style={{ fontSize: "15px", color: "#555", marginTop: "8px", fontWeight: "500" }}>
-                {pdfSettings.coverSubtitle || "R\u00e9union de chantier"}
-              </div>
-              <div style={{ width: "40px", height: "2px", backgroundColor: accent, margin: "16px auto" }} />
-              <div style={{ fontSize: "13px", color: "#444", marginTop: "8px" }}>
-                {formatDateLong(report.date)}
-              </div>
-            </div>
-
-            {/* Project Info */}
-            <div style={{ textAlign: "center", marginBottom: "24px" }}>
-              <div style={{ fontSize: "18px", fontWeight: "bold", color: "#222", marginBottom: "8px" }}>
-                {projectName}
-              </div>
-              {pdfSettings.projectDescription && (
-                <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px", maxWidth: "380px", lineHeight: "1.5" }}>
-                  {pdfSettings.projectDescription}
-                </div>
-              )}
-              {pdfSettings.siteAddress && (
-                <div style={{ fontSize: "10px", color: "#888" }}>
-                  {pdfSettings.siteAddress}
-                </div>
-              )}
-            </div>
-
-            <div style={{
-              display: "inline-block",
-              padding: "6px 20px",
-              backgroundColor: accent,
-              color: "white",
-              fontSize: "12px",
-              fontWeight: "bold",
-              letterSpacing: "1px",
-              borderRadius: "2px",
-            }}>
-              CR N°{report.number}
-            </div>
-
-            {/* Site Photo */}
-            {pdfSettings.sitePhotoUrl && (
-              <div style={{ marginTop: "36px" }}>
-                <img
-                  src={pdfSettings.sitePhotoUrl}
-                  alt="Photo du chantier"
-                  style={{
-                    maxHeight: "220px",
-                    maxWidth: "380px",
-                    objectFit: "cover",
-                    borderRadius: "4px",
-                  }}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Bottom */}
-          <div style={{ textAlign: "center", fontSize: "9px", color: "#aaa", paddingTop: "16px" }}>
-            {`\u00c9dit\u00e9 le ${new Date().toLocaleDateString("fr-FR")}`}
-          </div>
-        </div>
+        <CoverPage report={report} projectName={projectName} pdfSettings={pdfSettings} accent={accent} companyName={companyName} />
       )}
 
       {/* ═══════════ CONTENT PAGES ═══════════ */}
@@ -515,11 +406,7 @@ export function MeetingReportPreview({
         {/* Page header with logo */}
         {pdfSettings?.logoUrl && (
           <div style={{ marginBottom: "16px" }}>
-            <img
-              src={pdfSettings.logoUrl}
-              alt="Logo"
-              style={{ maxHeight: "35px", maxWidth: "130px", objectFit: "contain" }}
-            />
+            <img src={pdfSettings.logoUrl} alt="Logo" style={{ maxHeight: "35px", maxWidth: "130px", objectFit: "contain" }} />
           </div>
         )}
 
@@ -528,21 +415,19 @@ export function MeetingReportPreview({
         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "8px", fontSize: "9px" }}>
           <thead>
             <tr>
-              <ResizableTh style={{ ...thStyle, width: attWidths.designation, borderBottom: `2px solid ${accent}` }} colKey="designation" tableType="attendance" onResize={onColumnResize}>Lot</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.societe, borderBottom: `2px solid ${accent}` }} colKey="societe" tableType="attendance" onResize={onColumnResize}>Entreprise</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.nom, borderBottom: `2px solid ${accent}` }} colKey="nom" tableType="attendance" onResize={onColumnResize}>Repr{"\u00e9"}sentant</ResizableTh>
-              <ResizableTh style={{ ...thStyle, width: attWidths.presence, textAlign: "center", borderBottom: `2px solid ${accent}` }} colKey="presence" tableType="attendance" onResize={onColumnResize}>Pr{"\u00e9"}s.</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.designation, borderBottomColor: accent }} colKey="designation" tableType="attendance" onResize={onColumnResize}>Lot</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.societe, borderBottomColor: accent }} colKey="societe" tableType="attendance" onResize={onColumnResize}>Entreprise</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.nom, borderBottomColor: accent }} colKey="nom" tableType="attendance" onResize={onColumnResize}>Repr{"\u00e9"}sentant</ResizableTh>
+              <ResizableTh style={{ ...thStyle, width: attWidths.presence, textAlign: "center", borderBottomColor: accent }} colKey="presence" tableType="attendance" onResize={onColumnResize}>Pr{"\u00e9"}s.</ResizableTh>
               {showConvocation && (
-                <ResizableTh style={{ ...thStyle, width: attWidths.convocation, textAlign: "center", borderBottom: `2px solid ${accent}` }} colKey="convocation" tableType="attendance" onResize={onColumnResize}>Conv.</ResizableTh>
+                <ResizableTh style={{ ...thStyle, width: attWidths.convocation, textAlign: "center", borderBottomColor: accent }} colKey="convocation" tableType="attendance" onResize={onColumnResize}>Conv.</ResizableTh>
               )}
             </tr>
           </thead>
           <tbody>
             {sortedAttendances.map((att, i) => {
               const contacts = parseContacts(att.company.contacts);
-              const lotDisplay = att.company.lotNumber
-                ? `Lot ${att.company.lotNumber}`
-                : "\u2014";
+              const lotDisplay = att.company.lotNumber ? `Lot ${att.company.lotNumber}` : "\u2014";
               const lotLabel = att.company.lotLabel || "";
               const isAlt = i % 2 === 1;
 
@@ -558,14 +443,10 @@ export function MeetingReportPreview({
                       {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
                     </span>
                     {showContacts && contacts.length > 0 && contacts[0].phone && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
-                        {contacts[0].phone}
-                      </span>
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>{contacts[0].phone}</span>
                     )}
                     {showContacts && contacts.length > 0 && contacts[0].email && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
-                        {contacts[0].email}
-                      </span>
+                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>{contacts[0].email}</span>
                     )}
                   </td>
                   <td style={{ ...tdStyle, width: attWidths.presence, textAlign: "center" }}>
@@ -646,12 +527,10 @@ export function MeetingReportPreview({
                 </div>
               )}
 
-              <ObservationsCategoryTable
+              <ObservationsTable
                 observations={sectionObs}
                 previousReportNumber={previousReportNumber}
-                obsWidths={obsWidths}
                 color={accent}
-                visibleCategories={visibleCategories}
                 onColumnResize={onColumnResize}
               />
             </div>
@@ -662,12 +541,10 @@ export function MeetingReportPreview({
         {generalObs.length > 0 && (
           <div style={{ marginBottom: "24px" }}>
             <SectionTitle color={accent}>Observations g{"\u00e9"}n{"\u00e9"}rales</SectionTitle>
-            <ObservationsCategoryTable
+            <ObservationsTable
               observations={generalObs}
               previousReportNumber={previousReportNumber}
-              obsWidths={obsWidths}
               color={accent}
-              visibleCategories={visibleCategories}
               onColumnResize={onColumnResize}
             />
           </div>
@@ -692,20 +569,72 @@ export function MeetingReportPreview({
   );
 }
 
+// ─── Cover Page ─────────────────────────────────────────────────────
+function CoverPage({ report, projectName, pdfSettings, accent, companyName }: {
+  report: MeetingReport; projectName: string; pdfSettings: PdfSettings; accent: string; companyName: string;
+}) {
+  return (
+    <div style={{
+      width: "210mm", minHeight: "297mm", padding: "40px 50px",
+      display: "flex", flexDirection: "column",
+      borderBottom: "2px solid #e5e7eb", marginBottom: "20px",
+      pageBreakAfter: "always", boxSizing: "border-box",
+    }}>
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "16px", marginBottom: "60px" }}>
+        {pdfSettings.logoUrl && (
+          <img src={pdfSettings.logoUrl} alt="Logo" style={{ maxHeight: "70px", maxWidth: "180px", objectFit: "contain" }} />
+        )}
+        {(companyName || pdfSettings.companyAddress) && (
+          <div style={{ fontSize: "9px", color: "#555", lineHeight: "1.5" }}>
+            {companyName && <div style={{ fontWeight: "bold", fontSize: "10px", color: "#333" }}>{companyName}</div>}
+            {pdfSettings.companyAddress && <div style={{ whiteSpace: "pre-line", marginTop: "2px" }}>{pdfSettings.companyAddress}</div>}
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+        <div style={{ width: "60px", height: "3px", backgroundColor: accent, marginBottom: "24px" }} />
+        <div style={{ textAlign: "center", marginBottom: "32px" }}>
+          <div style={{ fontSize: "24px", fontWeight: "bold", color: "#222", letterSpacing: "2px", textTransform: "uppercase" }}>
+            {pdfSettings.coverTitle || "Compte-rendu"}
+          </div>
+          <div style={{ fontSize: "15px", color: "#555", marginTop: "8px", fontWeight: "500" }}>
+            {pdfSettings.coverSubtitle || "R\u00e9union de chantier"}
+          </div>
+          <div style={{ width: "40px", height: "2px", backgroundColor: accent, margin: "16px auto" }} />
+          <div style={{ fontSize: "13px", color: "#444", marginTop: "8px" }}>{formatDateLong(report.date)}</div>
+        </div>
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#222", marginBottom: "8px" }}>{projectName}</div>
+          {pdfSettings.projectDescription && (
+            <div style={{ fontSize: "11px", color: "#666", marginBottom: "6px", maxWidth: "380px", lineHeight: "1.5" }}>{pdfSettings.projectDescription}</div>
+          )}
+          {pdfSettings.siteAddress && <div style={{ fontSize: "10px", color: "#888" }}>{pdfSettings.siteAddress}</div>}
+        </div>
+        <div style={{ display: "inline-block", padding: "6px 20px", backgroundColor: accent, color: "white", fontSize: "12px", fontWeight: "bold", letterSpacing: "1px", borderRadius: "2px" }}>
+          CR N°{report.number}
+        </div>
+        {pdfSettings.sitePhotoUrl && (
+          <div style={{ marginTop: "36px" }}>
+            <img src={pdfSettings.sitePhotoUrl} alt="Photo du chantier" style={{ maxHeight: "220px", maxWidth: "380px", objectFit: "cover", borderRadius: "4px" }} />
+          </div>
+        )}
+      </div>
+      <div style={{ textAlign: "center", fontSize: "9px", color: "#aaa", paddingTop: "16px" }}>
+        {`\u00c9dit\u00e9 le ${new Date().toLocaleDateString("fr-FR")}`}
+      </div>
+    </div>
+  );
+}
+
 // ─── Sub-components ─────────────────────────────────────────────────
 
 function SectionTitle({ children, color }: { children: React.ReactNode; color: string }) {
   return (
     <div style={{
-      fontSize: "12px",
-      fontWeight: "bold",
-      color: "#222",
-      paddingBottom: "6px",
-      borderBottom: `2px solid ${color}`,
-      marginBottom: "10px",
-      marginTop: "20px",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
+      fontSize: "12px", fontWeight: "bold", color: "#222",
+      paddingBottom: "6px", borderBottom: `2px solid ${color}`,
+      marginBottom: "10px", marginTop: "20px",
+      textTransform: "uppercase", letterSpacing: "0.5px",
     }}>
       {children}
     </div>
@@ -714,9 +643,7 @@ function SectionTitle({ children, color }: { children: React.ReactNode; color: s
 
 function CompanySectionHeader({ section, color }: { section: Section; color: string }) {
   const company = section.company;
-  if (!company) {
-    return <SectionTitle color={color}>{section.title}</SectionTitle>;
-  }
+  if (!company) return <SectionTitle color={color}>{section.title}</SectionTitle>;
 
   return (
     <div style={{
@@ -726,77 +653,34 @@ function CompanySectionHeader({ section, color }: { section: Section; color: str
       marginBottom: "10px",
       marginTop: "22px",
       borderRadius: "0 4px 4px 0",
-      display: "flex",
-      alignItems: "baseline",
-      gap: "10px",
+      display: "flex", alignItems: "baseline", gap: "10px",
     }}>
       {company.lotNumber && (
-        <span style={{
-          fontSize: "12px",
-          fontWeight: "bold",
-          color: color,
-          whiteSpace: "nowrap",
-        }}>
+        <span style={{ fontSize: "12px", fontWeight: "bold", color: color, whiteSpace: "nowrap" }}>
           Lot {company.lotNumber}
         </span>
       )}
       <div>
-        <span style={{
-          fontSize: "11px",
-          fontWeight: "bold",
-          color: "#222",
-        }}>
-          {company.name}
-        </span>
-        {company.lotLabel && (
-          <span style={{
-            fontSize: "10px",
-            color: "#666",
-            marginLeft: "8px",
-          }}>
-            {company.lotLabel}
-          </span>
-        )}
+        <span style={{ fontSize: "11px", fontWeight: "bold", color: "#222" }}>{company.name}</span>
+        {company.lotLabel && <span style={{ fontSize: "10px", color: "#666", marginLeft: "8px" }}>{company.lotLabel}</span>}
       </div>
     </div>
   );
 }
 
-function ObservationsCategoryTable({
+// ─── Single flat observations table per lot ─────────────────────────
+function ObservationsTable({
   observations,
   previousReportNumber,
-  obsWidths,
   color,
-  visibleCategories,
   onColumnResize,
 }: {
   observations: Observation[];
   previousReportNumber: number | null;
-  obsWidths: { description: string; pourLe: string; faitLe: string };
   color: string;
-  visibleCategories?: string[];
   onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
 }) {
-  const filteredCategories = visibleCategories && visibleCategories.length > 0
-    ? CATEGORY_ORDER.filter((cat) => visibleCategories.includes(cat))
-    : CATEGORY_ORDER;
-
-  const obsByCategory: Record<string, Observation[]> = {};
-  for (const cat of filteredCategories) {
-    obsByCategory[cat] = [];
-  }
-  obsByCategory["_other"] = [];
-
-  for (const obs of observations) {
-    const cat = obs.category && filteredCategories.includes(obs.category) ? obs.category : "_other";
-    obsByCategory[cat].push(obs);
-  }
-
-  // Only show categories that have observations
-  const nonEmptyCategories = filteredCategories.filter((cat) => obsByCategory[cat].length > 0);
-  const hasOther = obsByCategory["_other"].length > 0;
-
-  if (nonEmptyCategories.length === 0 && !hasOther) {
+  if (observations.length === 0) {
     return (
       <div style={{ fontSize: "9px", color: "#bbb", padding: "6px 0", fontStyle: "italic" }}>
         Aucune observation
@@ -804,158 +688,63 @@ function ObservationsCategoryTable({
     );
   }
 
-  let isFirstCategory = true;
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "8px" }}>
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "9px", marginBottom: "4px" }}>
+      <thead>
+        <tr>
+          <th style={{ ...obsThStyle, width: "5%", borderBottomColor: color, textAlign: "center" }}>#</th>
+          <ResizableTh style={{ ...obsThStyle, borderBottomColor: color }} colKey="description" tableType="observations" onResize={onColumnResize}>Observation</ResizableTh>
+          <ResizableTh style={{ ...obsThStyle, width: "12%", textAlign: "center", borderBottomColor: color }} colKey="pourLe" tableType="observations" onResize={onColumnResize}>{"\u00c9"}ch{"\u00e9"}ance</ResizableTh>
+          <ResizableTh style={{ ...obsThStyle, width: "14%", textAlign: "center", borderBottomColor: color }} colKey="faitLe" tableType="observations" onResize={onColumnResize}>Statut</ResizableTh>
+        </tr>
+      </thead>
       <tbody>
-        {nonEmptyCategories.map((cat) => {
-          const isFirst = isFirstCategory;
-          isFirstCategory = false;
+        {observations.map((obs, i) => {
+          const status = renderObsStatus(obs);
+          const isAlert = obs.status === "retard" || obs.status === "urgent";
+
           return (
-            <CategoryRows
-              key={cat}
-              label={CATEGORY_LABELS[cat]}
-              observations={obsByCategory[cat]}
-              previousReportNumber={previousReportNumber}
-              obsWidths={obsWidths}
-              color={color}
-              onColumnResize={isFirst ? onColumnResize : undefined}
-            />
+            <tr key={obs.id} style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : undefined}>
+              <td style={{ ...obsTdStyle, textAlign: "center", color: "#999", fontSize: "8px" }}>{i + 1}</td>
+              <td style={{ ...obsTdStyle }}>
+                <span style={{ color: isAlert ? "#dc2626" : "#333" }}>{obs.description}</span>
+                {obs.category && (
+                  <span style={{
+                    display: "inline-block",
+                    fontSize: "7px",
+                    color: "#8b8fa3",
+                    backgroundColor: "#f1f3f5",
+                    padding: "0 4px",
+                    borderRadius: "2px",
+                    marginLeft: "6px",
+                    verticalAlign: "middle",
+                  }}>
+                    {CATEGORY_LABELS[obs.category] ?? obs.category}
+                  </span>
+                )}
+                {obs.sourceObservationId && previousReportNumber && (
+                  <span style={{ fontSize: "7px", color: "#9ca3af", marginLeft: "4px" }}>
+                    (CR n°{previousReportNumber})
+                  </span>
+                )}
+              </td>
+              <td style={{ ...obsTdStyle, textAlign: "center", fontSize: "8px", color: isAlert ? "#dc2626" : "#666" }}>
+                {obs.dueDate ? formatDate(obs.dueDate) : "\u2014"}
+              </td>
+              <td style={{
+                ...obsTdStyle,
+                textAlign: "center",
+                fontSize: "8px",
+                fontWeight: status.bold ? "bold" : "normal",
+                color: status.color,
+              }}>
+                {status.text}
+              </td>
+            </tr>
           );
         })}
-        {hasOther && (
-          <CategoryRows
-            label="Divers"
-            observations={obsByCategory["_other"]}
-            previousReportNumber={previousReportNumber}
-            obsWidths={obsWidths}
-            color={color}
-            onColumnResize={nonEmptyCategories.length === 0 ? onColumnResize : undefined}
-          />
-        )}
       </tbody>
     </table>
-  );
-}
-
-function CategoryRows({
-  label,
-  observations,
-  previousReportNumber,
-  obsWidths,
-  color,
-  onColumnResize,
-}: {
-  label: string;
-  observations: Observation[];
-  previousReportNumber: number | null;
-  obsWidths: { description: string; pourLe: string; faitLe: string };
-  color: string;
-  onColumnResize?: (table: "attendance" | "observations", key: string, value: string) => void;
-}) {
-  return (
-    <>
-      {/* Category header row */}
-      <tr>
-        {onColumnResize ? (
-          <>
-            <ResizableTh
-              style={{
-                ...catHeaderStyle,
-                borderLeft: `3px solid ${color}`,
-                width: obsWidths.description,
-              }}
-              colKey="description"
-              tableType="observations"
-              onResize={onColumnResize}
-            >
-              {label}
-            </ResizableTh>
-            <ResizableTh
-              style={{
-                ...catHeaderDateStyle,
-                width: obsWidths.pourLe,
-              }}
-              colKey="pourLe"
-              tableType="observations"
-              onResize={onColumnResize}
-            >
-              Pour le
-            </ResizableTh>
-            <ResizableTh
-              style={{
-                ...catHeaderDateStyle,
-                width: obsWidths.faitLe,
-              }}
-              colKey="faitLe"
-              tableType="observations"
-              onResize={onColumnResize}
-            >
-              Fait le
-            </ResizableTh>
-          </>
-        ) : (
-          <>
-            <td style={{
-              ...catHeaderStyle,
-              borderLeft: `3px solid ${color}`,
-              width: obsWidths.description,
-            }}>
-              {label}
-            </td>
-            <td style={{ ...catHeaderDateStyle, width: obsWidths.pourLe }}>
-              Pour le
-            </td>
-            <td style={{ ...catHeaderDateStyle, width: obsWidths.faitLe }}>
-              Fait le
-            </td>
-          </>
-        )}
-      </tr>
-      {/* Observation rows */}
-      {observations.map((obs) => {
-        const statusColor = STATUS_COLORS[obs.status] ?? "#333";
-        const isRetardOrUrgent = obs.status === "retard" || obs.status === "urgent";
-        return (
-          <tr key={obs.id}>
-            <td style={{
-              ...tdStyle,
-              width: obsWidths.description,
-              padding: "5px 8px 5px 16px",
-              color: isRetardOrUrgent ? "#dc2626" : "#333",
-            }}>
-              {obs.description}
-              {obs.sourceObservationId && previousReportNumber && (
-                <span style={{ fontSize: "7px", color: "#9ca3af", marginLeft: "4px" }}>
-                  (CR n°{previousReportNumber})
-                </span>
-              )}
-            </td>
-            <td style={{
-              ...tdStyle,
-              width: obsWidths.pourLe,
-              textAlign: "center",
-              fontSize: "8px",
-              color: isRetardOrUrgent ? "#dc2626" : "#888",
-            }}>
-              {obs.dueDate ? formatDate(obs.dueDate) : ""}
-            </td>
-            <td style={{
-              ...tdStyle,
-              width: obsWidths.faitLe,
-              textAlign: "center",
-              fontSize: "8px",
-              fontWeight: isRetardOrUrgent ? "bold" : "normal",
-              color: statusColor,
-            }}>
-              {obs.status === "fait" && obs.doneDate
-                ? formatDate(obs.doneDate)
-                : STATUS_LABELS[obs.status] ?? ""}
-            </td>
-          </tr>
-        );
-      })}
-    </>
   );
 }
 
@@ -978,20 +767,20 @@ const tdStyle: React.CSSProperties = {
   fontSize: "9px",
 };
 
-const catHeaderStyle: React.CSSProperties = {
-  fontWeight: "bold",
-  fontSize: "9px",
-  backgroundColor: "#f1f5f9",
-  padding: "6px 8px",
-  borderBottom: "1px solid #e2e8f0",
-};
-
-const catHeaderDateStyle: React.CSSProperties = {
+const obsThStyle: React.CSSProperties = {
   fontSize: "8px",
   fontWeight: "600",
-  color: "#64748b",
-  textAlign: "center",
-  backgroundColor: "#f1f5f9",
-  padding: "6px 4px",
-  borderBottom: "1px solid #e2e8f0",
+  color: "#555",
+  textTransform: "uppercase",
+  letterSpacing: "0.3px",
+  padding: "6px 8px",
+  borderBottom: "2px solid #333",
+  textAlign: "left",
+};
+
+const obsTdStyle: React.CSSProperties = {
+  padding: "5px 8px",
+  borderBottom: "1px solid #eef0f2",
+  verticalAlign: "top",
+  fontSize: "9px",
 };
