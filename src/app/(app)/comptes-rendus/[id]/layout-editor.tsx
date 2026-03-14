@@ -574,13 +574,12 @@ export function LayoutEditor({
           </div>
 
           {/* Preview content */}
-          <div ref={previewContainerRef} className="flex-1 overflow-auto bg-gray-200 p-6">
+          <div ref={previewContainerRef} className="flex-1 overflow-auto bg-gray-200 p-4 md:p-6">
             <div
               className="mx-auto shadow-xl"
               style={{
                 width: "210mm",
-                transformOrigin: "top left",
-                transform: effectiveScale !== 1 ? `scale(${effectiveScale})` : undefined,
+                zoom: effectiveScale,
               }}
             >
               <MeetingReportPreview
