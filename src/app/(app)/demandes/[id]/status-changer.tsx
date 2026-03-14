@@ -44,19 +44,19 @@ export function StatusChanger({
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Erreur lors de la mise a jour");
+        throw new Error(data.error || "Erreur lors de la mise à jour");
       }
 
       const statusLabel = REQUEST_STATUSES.find(
         (s) => s.value === newStatus
       )?.label;
-      toast.success(`Statut mis a jour: ${statusLabel}`);
+      toast.success(`Statut mis à jour : ${statusLabel}`);
       router.refresh();
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Erreur lors de la mise a jour du statut"
+          : "Erreur lors de la mise à jour du statut"
       );
     } finally {
       setIsUpdating(null);

@@ -135,7 +135,7 @@ export default async function DemandeDetailPage({
                 <span className="font-medium">{requestItem._count.comments}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Derniere mise a jour</span>
+                <span className="text-muted-foreground">Dernière mise à jour</span>
                 <span className="font-medium">
                   {formatRelativeTime(requestItem.updatedAt)}
                 </span>

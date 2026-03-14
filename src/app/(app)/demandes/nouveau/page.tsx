@@ -63,14 +63,14 @@ export default function NouvelleDemandePageClient() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Erreur lors de la creation");
+        throw new Error(data.error || "Erreur lors de la création");
       }
 
-      toast.success("Demande creee avec succes");
+      toast.success("Demande créée avec succès");
       router.push("/demandes");
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Erreur lors de la creation"
+        error instanceof Error ? error.message : "Erreur lors de la création"
       );
     } finally {
       setIsSubmitting(false);
@@ -113,7 +113,7 @@ export default function NouvelleDemandePageClient() {
               <Label htmlFor="description">Description</Label>
               <Textarea
                 id="description"
-                placeholder="Decrivez la demande en detail..."
+                placeholder="Décrivez la demande en détail..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={4}
@@ -124,7 +124,7 @@ export default function NouvelleDemandePageClient() {
               <Label htmlFor="type">Type *</Label>
               <Select value={type} onValueChange={(v) => v && setType(v)}>
                 <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Selectionnez un type">
+                  <SelectValue placeholder="Sélectionnez un type">
                     {type ? REQUEST_TYPES.find((t) => t.value === type)?.label : undefined}
                   </SelectValue>
                 </SelectTrigger>
@@ -139,17 +139,17 @@ export default function NouvelleDemandePageClient() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="assignedTo">Assignee a</Label>
+              <Label htmlFor="assignedTo">Assignée à</Label>
               <Input
                 id="assignedTo"
-                placeholder="Nom de la personne assignee"
+                placeholder="Nom de la personne assignée"
                 value={assignedTo}
                 onChange={(e) => setAssignedTo(e.target.value)}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dueDate">Date d&apos;echeance</Label>
+              <Label htmlFor="dueDate">Date d&apos;échéance</Label>
               <Input
                 id="dueDate"
                 type="date"
@@ -163,7 +163,7 @@ export default function NouvelleDemandePageClient() {
                 {isSubmitting && (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />
                 )}
-                Creer la demande
+                Créer la demande
               </Button>
               <Link href="/demandes">
                 <Button type="button" variant="outline">

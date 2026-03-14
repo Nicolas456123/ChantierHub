@@ -86,17 +86,17 @@ export function EditRequest({ request }: EditRequestProps) {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Erreur lors de la mise a jour");
+        throw new Error(data.error || "Erreur lors de la mise à jour");
       }
 
-      toast.success("Demande modifiee");
+      toast.success("Demande modifiée");
       setIsEditing(false);
       router.refresh();
     } catch (error) {
       toast.error(
         error instanceof Error
           ? error.message
-          : "Erreur lors de la mise a jour"
+          : "Erreur lors de la mise à jour"
       );
     } finally {
       setIsSaving(false);
@@ -213,7 +213,7 @@ export function EditRequest({ request }: EditRequestProps) {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="edit-assignedTo">Assigne a</Label>
+                <Label htmlFor="edit-assignedTo">Assignée à</Label>
                 <Input
                   id="edit-assignedTo"
                   value={assignedTo}
@@ -223,7 +223,7 @@ export function EditRequest({ request }: EditRequestProps) {
               </div>
 
               <div className="space-y-1">
-                <Label htmlFor="edit-dueDate">Echeance</Label>
+                <Label htmlFor="edit-dueDate">Échéance</Label>
                 <Input
                   id="edit-dueDate"
                   type="date"
@@ -258,7 +258,7 @@ export function EditRequest({ request }: EditRequestProps) {
               {request.assignedTo && (
                 <div className="flex items-center gap-2 text-sm">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Assignee a:</span>
+                  <span className="text-muted-foreground">Assignée à:</span>
                   <span className="font-medium">{request.assignedTo}</span>
                 </div>
               )}
@@ -266,7 +266,7 @@ export function EditRequest({ request }: EditRequestProps) {
               {request.dueDate && (
                 <div className="flex items-center gap-2 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Echeance:</span>
+                  <span className="text-muted-foreground">Échéance:</span>
                   <span className="font-medium">
                     {formatDate(new Date(request.dueDate))}
                   </span>
@@ -275,7 +275,7 @@ export function EditRequest({ request }: EditRequestProps) {
 
               <div className="flex items-center gap-2 text-sm">
                 <Clock className="h-4 w-4 text-muted-foreground" />
-                <span className="text-muted-foreground">Creee le:</span>
+                <span className="text-muted-foreground">Créée le:</span>
                 <span className="font-medium">
                   {formatDateTime(new Date(request.createdAt))}
                 </span>

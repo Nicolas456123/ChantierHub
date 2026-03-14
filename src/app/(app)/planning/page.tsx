@@ -92,7 +92,7 @@ function getTypeIcon(type: "task" | "request" | "constraint") {
 function getTypeLabel(type: "task" | "request" | "constraint") {
   switch (type) {
     case "task":
-      return "Tache";
+      return "Tâche";
     case "request":
       return "Demande";
     case "constraint":
@@ -226,16 +226,16 @@ export default async function PlanningPage() {
     <div className="space-y-6">
       <PageHeader
         title="Planning"
-        description="Echeances et timeline du projet"
+        description="Échéances et timeline du projet"
       />
 
       {totalCount === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-16">
             <CalendarRange className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-medium mb-1">Aucune echeance</h3>
+            <h3 className="text-lg font-medium mb-1">Aucune échéance</h3>
             <p className="text-sm text-muted-foreground">
-              Ajoutez des dates d&apos;echeance a vos taches, demandes ou
+              Ajoutez des dates d&apos;échéance à vos tâches, demandes ou
               contraintes pour les voir ici.
             </p>
           </CardContent>
@@ -370,7 +370,7 @@ export default async function PlanningPage() {
                                       <div className="flex items-center gap-1 mt-2 text-xs text-orange-600">
                                         <AlertTriangle className="h-3 w-3" />
                                         <span>
-                                          Penalite : {item.penaltyAmount.toLocaleString("fr-FR")}{" "}
+                                          Pénalité : {item.penaltyAmount.toLocaleString("fr-FR")}{" "}
                                           EUR
                                           {item.penaltyUnit &&
                                             ` - ${getPenaltyUnitLabel(item.penaltyUnit)}`}
