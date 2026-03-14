@@ -9,6 +9,7 @@ import { formatDate } from "@/lib/format";
 import { EVENT_CATEGORIES, PRIORITIES } from "@/lib/constants";
 import { Plus, BookOpen, MessageSquare } from "lucide-react";
 import { ListFilters } from "@/components/list-filters";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 export const dynamic = "force-dynamic";
 
@@ -109,9 +110,30 @@ export default async function JournalPage({ searchParams }: Props) {
         </Card>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} événement{filtered.length > 1 ? "s" : ""}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} événement{filtered.length > 1 ? "s" : ""}
+            </p>
+            <ExportCsvButton
+              filename={`journal-${new Date().toISOString().split("T")[0]}`}
+              columns={[
+                { key: "title", label: "Titre" },
+                { key: "category", label: "Catégorie" },
+                { key: "priority", label: "Priorité" },
+                { key: "description", label: "Description" },
+                { key: "author", label: "Auteur" },
+                { key: "date", label: "Date" },
+              ]}
+              data={filtered.map((e) => ({
+                title: e.title,
+                category: EVENT_CATEGORIES.find((c) => c.value === e.category)?.label ?? e.category,
+                priority: PRIORITIES.find((p) => p.value === e.priority)?.label ?? e.priority,
+                description: e.description ?? "",
+                author: e.author,
+                date: formatDate(e.date),
+              }))}
+            />
+          </div>
           <div
             className="grid gap-3"
             style={{

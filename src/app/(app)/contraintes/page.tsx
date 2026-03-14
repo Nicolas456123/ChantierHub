@@ -13,6 +13,7 @@ import {
 } from "@/lib/constants";
 import { Plus, Shield, Calendar, User, Euro, MessageSquare } from "lucide-react";
 import { ListFilters } from "@/components/list-filters";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 export const dynamic = "force-dynamic";
 
@@ -123,6 +124,33 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
           </CardContent>
         </Card>
       ) : (
+        <>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {constraints.length} contrainte{constraints.length > 1 ? "s" : ""}
+          </p>
+          <ExportCsvButton
+            filename={`contraintes-${new Date().toISOString().split("T")[0]}`}
+            columns={[
+              { key: "title", label: "Titre" },
+              { key: "category", label: "Catégorie" },
+              { key: "status", label: "Statut" },
+              { key: "articleRef", label: "Article" },
+              { key: "penaltyAmount", label: "Montant pénalité (€)" },
+              { key: "responsible", label: "Responsable" },
+              { key: "dueDate", label: "Échéance" },
+            ]}
+            data={constraints.map((c) => ({
+              title: c.title,
+              category: CONSTRAINT_CATEGORIES.find((cat) => cat.value === (c.category || c.type))?.label ?? c.type,
+              status: CONSTRAINT_STATUSES.find((s) => s.value === c.status)?.label ?? c.status,
+              articleRef: c.articleRef ?? "",
+              penaltyAmount: c.penaltyAmount ?? "",
+              responsible: c.responsible ?? "",
+              dueDate: c.dueDate ? formatDate(c.dueDate) : "",
+            }))}
+          />
+        </div>
         <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 350px), 1fr))" }}>
           {constraints.map((constraint) => {
             const categoryInfo = CONSTRAINT_CATEGORIES.find(
@@ -210,6 +238,7 @@ export default async function ContraintesPage({ searchParams }: ContraintesPageP
             );
           })}
         </div>
+        </>
       )}
     </div>
   );

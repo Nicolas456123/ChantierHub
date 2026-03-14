@@ -15,6 +15,7 @@ import {
   FileQuestion,
 } from "lucide-react";
 import { ListFilters } from "@/components/list-filters";
+import { ExportCsvButton } from "@/components/export-csv-button";
 
 export const dynamic = "force-dynamic";
 
@@ -108,9 +109,32 @@ export default async function DemandesPage({ searchParams }: DemandesPageProps) 
         </Card>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground">
-            {filtered.length} demande{filtered.length > 1 ? "s" : ""}
-          </p>
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {filtered.length} demande{filtered.length > 1 ? "s" : ""}
+            </p>
+            <ExportCsvButton
+              filename={`demandes-${new Date().toISOString().split("T")[0]}`}
+              columns={[
+                { key: "title", label: "Titre" },
+                { key: "type", label: "Type" },
+                { key: "status", label: "Statut" },
+                { key: "author", label: "Auteur" },
+                { key: "assignedTo", label: "Assignée à" },
+                { key: "dueDate", label: "Échéance" },
+                { key: "createdAt", label: "Créée le" },
+              ]}
+              data={filtered.map((r) => ({
+                title: r.title,
+                type: REQUEST_TYPES.find((t) => t.value === r.type)?.label ?? r.type,
+                status: REQUEST_STATUSES.find((s) => s.value === r.status)?.label ?? r.status,
+                author: r.author,
+                assignedTo: r.assignedTo ?? "",
+                dueDate: r.dueDate ? formatDate(r.dueDate) : "",
+                createdAt: formatDate(r.createdAt),
+              }))}
+            />
+          </div>
           <div
             className="grid gap-4"
             style={{
