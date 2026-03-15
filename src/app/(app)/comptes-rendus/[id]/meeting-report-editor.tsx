@@ -397,6 +397,7 @@ export function MeetingReportEditor({
             sections: sections,
             observations,
           }}
+          companies={companies}
           projectName={projectName}
           previousReportNumber={previousReportNumber}
           pdfSettings={currentPdfSettings}

@@ -116,6 +116,7 @@ interface PdfSettings {
 
 interface LayoutEditorProps {
   report: MeetingReport;
+  companies?: Company[];
   projectName: string;
   previousReportNumber: number | null;
   pdfSettings: PdfSettings;
@@ -154,6 +155,7 @@ function SettingsSection({
 // ─── Layout Editor ──────────────────────────────────────────────────
 export function LayoutEditor({
   report,
+  companies,
   projectName,
   previousReportNumber,
   pdfSettings: initialSettings,
@@ -628,6 +630,7 @@ export function LayoutEditor({
             >
               <MeetingReportPreview
                 report={report}
+                companies={companies}
                 projectName={projectName}
                 previousReportNumber={previousReportNumber}
                 pdfSettings={settings}

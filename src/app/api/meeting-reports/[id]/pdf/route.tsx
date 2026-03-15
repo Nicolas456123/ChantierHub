@@ -36,6 +36,12 @@ export async function GET(
       );
     }
 
+    // Get all companies for the full contact list
+    const allCompanies = await prisma.company.findMany({
+      where: { projectId },
+      orderBy: [{ lotNumber: "asc" }, { name: "asc" }],
+    });
+
     // Get project name and PDF settings
     const project = await prisma.project.findUnique({
       where: { id: projectId },
@@ -63,6 +69,7 @@ export async function GET(
     const buffer = await renderToBuffer(
       <MeetingReportPDF
         report={serialized}
+        companies={JSON.parse(JSON.stringify(allCompanies))}
         projectName={project?.name ?? "Projet"}
         previousReportNumber={previousReport?.number ?? null}
         pdfSettings={pdfSettings}

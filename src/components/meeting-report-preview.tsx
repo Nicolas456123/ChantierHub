@@ -93,6 +93,7 @@ interface PdfSettings {
 
 interface Props {
   report: MeetingReport;
+  companies?: Company[];
   projectName: string;
   previousReportNumber: number | null;
   pdfSettings?: PdfSettings;
@@ -357,6 +358,7 @@ function renderObsStatus(obs: Observation): { text: string; color: string; bold:
 // ─── Preview Component ──────────────────────────────────────────────
 export function MeetingReportPreview({
   report,
+  companies: allCompanies,
   projectName,
   previousReportNumber,
   pdfSettings,
@@ -373,10 +375,28 @@ export function MeetingReportPreview({
 
   const attWidths = { ...DEFAULT_ATTENDANCE_WIDTHS, ...pdfSettings?.columnWidths?.attendance };
 
-  const sortedAttendances = useMemo(
-    () => sortByLotNumber(report.attendances, (att) => att.company),
-    [report.attendances]
-  );
+  // Build full attendance list: all companies with their attendance status
+  const sortedAttendances = useMemo(() => {
+    const attendanceMap = new Map(
+      report.attendances.map((att) => [att.companyId, att])
+    );
+    // If allCompanies provided, merge with attendances
+    if (allCompanies && allCompanies.length > 0) {
+      const merged: Attendance[] = allCompanies.map((company) => {
+        const existing = attendanceMap.get(company.id);
+        if (existing) return existing;
+        return {
+          id: `virtual-${company.id}`,
+          companyId: company.id,
+          status: "non_convoque",
+          representant: "",
+          company,
+        };
+      });
+      return sortByLotNumber(merged, (att) => att.company);
+    }
+    return sortByLotNumber(report.attendances, (att) => att.company);
+  }, [report.attendances, allCompanies]);
 
   const sortedSections = useMemo(
     () => sortByLotNumber(report.sections, (sec) => sec.company),
@@ -439,14 +459,22 @@ export function MeetingReportPreview({
                   </td>
                   <td style={{ ...tdStyle, width: attWidths.societe, fontWeight: "600" }}>{att.company.name}</td>
                   <td style={{ ...tdStyle, width: attWidths.nom }}>
-                    <span style={{ fontWeight: "500" }}>
-                      {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
-                    </span>
-                    {showContacts && contacts.length > 0 && contacts[0].phone && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>{contacts[0].phone}</span>
-                    )}
-                    {showContacts && contacts.length > 0 && contacts[0].email && (
-                      <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>{contacts[0].email}</span>
+                    {contacts.length > 0 ? contacts.map((contact, ci) => (
+                      <div key={ci} style={ci > 0 ? { marginTop: "3px", borderTop: "1px solid #f0f0f0", paddingTop: "2px" } : undefined}>
+                        <span style={{ fontWeight: "500", fontSize: "9px" }}>
+                          {contact.name}
+                          {contact.role && <span style={{ fontWeight: "normal", color: "#888", fontSize: "7.5px" }}> ({contact.role})</span>}
+                        </span>
+                        {showContacts && (contact.phone || contact.email) && (
+                          <span style={{ display: "block", fontSize: "7.5px", color: "#888" }}>
+                            {[contact.phone, contact.email].filter(Boolean).join(" \u2022 ")}
+                          </span>
+                        )}
+                      </div>
+                    )) : (
+                      <span style={{ fontWeight: "500" }}>
+                        {att.representant || "\u2014"}
+                      </span>
                     )}
                   </td>
                   <td style={{ ...tdStyle, width: attWidths.presence, textAlign: "center" }}>

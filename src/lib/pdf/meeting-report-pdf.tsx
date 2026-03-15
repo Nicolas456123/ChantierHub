@@ -85,6 +85,7 @@ interface PdfSettings {
 
 interface Props {
   report: MeetingReportData;
+  companies?: Company[];
   projectName: string;
   previousReportNumber: number | null;
   pdfSettings?: PdfSettings;
@@ -139,6 +140,7 @@ const ATTENDANCE_COLORS: Record<string, string> = {
 
 interface Contact {
   name: string;
+  role?: string;
   phone?: string;
   email?: string;
 }
@@ -344,6 +346,7 @@ const s = StyleSheet.create({
 // ─── PDF Document ───────────────────────────────────────────────────
 export function MeetingReportPDF({
   report,
+  companies: allCompanies,
   projectName,
   previousReportNumber,
   pdfSettings,
@@ -360,7 +363,21 @@ export function MeetingReportPDF({
 
   const attWidths = { ...DEFAULT_ATTENDANCE_WIDTHS, ...pdfSettings?.columnWidths?.attendance };
 
-  const sortedAttendances = sortByLotNumber(report.attendances, (att) => att.company);
+  // Build full attendance list: all companies with their attendance status
+  const sortedAttendances = (() => {
+    if (allCompanies && allCompanies.length > 0) {
+      const attendanceMap = new Map(
+        report.attendances.map((att) => [att.company.id, att])
+      );
+      const merged: Attendance[] = allCompanies.map((company) => {
+        const existing = attendanceMap.get(company.id);
+        if (existing) return existing;
+        return { status: "non_convoque", representant: "", company };
+      });
+      return sortByLotNumber(merged, (att) => att.company);
+    }
+    return sortByLotNumber(report.attendances, (att) => att.company);
+  })();
   const sortedSections = sortByLotNumber(report.sections, (sec) => sec.company);
   const generalObs = report.observations.filter((o) => !o.companyId);
 
@@ -455,15 +472,21 @@ export function MeetingReportPDF({
               </View>
               <Text style={[s.tCell, { width: attWidths.societe, fontFamily: pdfFontBold }]}>{att.company.name}</Text>
               <View style={[s.tCell, { width: attWidths.nom }]}>
-                <Text style={{ fontSize: 9 }}>
-                  {att.representant || (contacts.length > 0 ? contacts[0].name : "\u2014")}
-                </Text>
-                {showContacts && contacts.length > 0 && contacts[0].phone ? (
-                  <Text style={{ fontSize: 7, color: "#888" }}>{contacts[0].phone}</Text>
-                ) : null}
-                {showContacts && contacts.length > 0 && contacts[0].email ? (
-                  <Text style={{ fontSize: 7, color: "#888" }}>{contacts[0].email}</Text>
-                ) : null}
+                {contacts.length > 0 ? contacts.map((contact, ci) => (
+                  <View key={ci} style={ci > 0 ? { marginTop: 2, borderTopWidth: 0.5, borderTopColor: "#eee", paddingTop: 1 } : {}}>
+                    <Text style={{ fontSize: 9 }}>
+                      {contact.name}
+                      {contact.role ? <Text style={{ fontSize: 7, color: "#888" }}> ({contact.role})</Text> : null}
+                    </Text>
+                    {showContacts && (contact.phone || contact.email) ? (
+                      <Text style={{ fontSize: 7, color: "#888" }}>
+                        {[contact.phone, contact.email].filter(Boolean).join(" \u2022 ")}
+                      </Text>
+                    ) : null}
+                  </View>
+                )) : (
+                  <Text style={{ fontSize: 9 }}>{att.representant || "\u2014"}</Text>
+                )}
               </View>
               <View style={[s.tCell, { width: attWidths.presence, alignItems: "center", justifyContent: "center" }]}>
                 <View style={[s.attBadge, { backgroundColor: ATTENDANCE_COLORS[att.status] ?? "#999" }]}>
