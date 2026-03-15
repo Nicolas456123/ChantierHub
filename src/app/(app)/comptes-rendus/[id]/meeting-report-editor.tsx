@@ -341,14 +341,15 @@ export function MeetingReportEditor({
           year: "numeric",
         })}
         action={
-          <div className="flex items-center gap-2 flex-wrap">
-            <Button size="sm" variant="outline" onClick={() => setShowLayoutEditor(true)}>
-              <Palette className="h-4 w-4 mr-1" />
-              Mise en page
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <Button size="sm" variant="outline" onClick={() => setShowLayoutEditor(true)} className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
+              <Palette className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Mise en page</span>
             </Button>
             <Button
               size="sm"
               variant="outline"
+              className="h-8 px-2 sm:px-3 text-xs sm:text-sm"
               onClick={() => {
                 window.open(
                   `/api/meeting-reports/${report.id}/pdf`,
@@ -356,12 +357,13 @@ export function MeetingReportEditor({
                 );
               }}
             >
-              <Download className="h-4 w-4 mr-1" />
-              Télécharger
+              <Download className="h-4 w-4 sm:mr-1" />
+              <span className="hidden sm:inline">Télécharger</span>
             </Button>
             {report.status === "brouillon" && (
               <Button
                 size="sm"
+                className="h-8 text-xs sm:text-sm"
                 onClick={() => changeStatus("valide")}
                 disabled={saving}
               >
@@ -371,6 +373,7 @@ export function MeetingReportEditor({
             {report.status === "valide" && (
               <Button
                 size="sm"
+                className="h-8 text-xs sm:text-sm"
                 onClick={() => changeStatus("diffuse")}
                 disabled={saving}
               >
@@ -378,9 +381,9 @@ export function MeetingReportEditor({
               </Button>
             )}
             <Link href="/comptes-rendus">
-              <Button variant="outline" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Retour
+              <Button variant="outline" size="sm" className="h-8 px-2 sm:px-3 text-xs sm:text-sm">
+                <ArrowLeft className="h-4 w-4 sm:mr-1" />
+                <span className="hidden sm:inline">Retour</span>
               </Button>
             </Link>
           </div>
@@ -625,8 +628,8 @@ export function MeetingReportEditor({
                 <div className="space-y-2">
                   {attendances.map((att) => (
                     <div key={att.id} className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium flex-1 truncate">
+                      <div className="flex items-center gap-1.5 sm:gap-2">
+                        <span className="text-xs sm:text-sm font-medium flex-1 min-w-0 truncate">
                           {att.company.lotNumber && (
                             <span className="text-muted-foreground">
                               {att.company.lotNumber} —{" "}
@@ -639,7 +642,7 @@ export function MeetingReportEditor({
                           onChange={(e) =>
                             toggleAttendance(att.companyId, e.target.value)
                           }
-                          className="text-xs border rounded px-1.5 py-1 bg-background"
+                          className="text-xs border rounded px-1.5 py-1 bg-background shrink-0"
                         >
                           {ATTENDANCE_STATUSES.map((s) => (
                             <option key={s.value} value={s.value}>
@@ -823,16 +826,16 @@ function SectionEditor({
     <Card>
       <CardHeader className="pb-3">
         <button
-          className="flex items-center gap-2 w-full text-left"
+          className="flex items-start gap-2 w-full text-left"
           onClick={() => setExpanded(!expanded)}
         >
           {expanded ? (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 mt-1 shrink-0" />
           ) : (
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-4 w-4 mt-1 shrink-0" />
           )}
-          <CardTitle className="text-base flex-1">{section.title}</CardTitle>
-          <div className="flex items-center gap-1.5">
+          <CardTitle className="text-sm sm:text-base flex-1 min-w-0 leading-snug">{section.title}</CardTitle>
+          <div className="flex items-center gap-1.5 shrink-0">
             {doneObs > 0 && (
               <Badge
                 variant="secondary"
@@ -1072,84 +1075,86 @@ function ObservationsList({
                 : "bg-gray-50"
             }`}
           >
-            <div className="flex items-start gap-2">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {isCarriedOver && previousReportNumber && (
-                    <Badge
-                      variant="outline"
-                      className="text-[10px] text-orange-600 border-orange-200"
-                    >
-                      <CornerDownRight className="h-2.5 w-2.5 mr-0.5" />
-                      CR n°{previousReportNumber}
-                    </Badge>
-                  )}
-                  {obsStatusInfo && (
-                    <Badge
-                      variant="secondary"
-                      className={`text-[10px] ${obsStatusInfo.color}`}
-                    >
-                      {obsStatusInfo.label}
-                    </Badge>
-                  )}
-                  {obs.category && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {
-                        OBSERVATION_CATEGORIES.find(
-                          (c) => c.value === obs.category
-                        )?.label
-                      }
-                    </span>
-                  )}
+            <div className="space-y-1.5">
+              <div className="flex items-start gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {isCarriedOver && previousReportNumber && (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] text-orange-600 border-orange-200"
+                      >
+                        <CornerDownRight className="h-2.5 w-2.5 mr-0.5" />
+                        CR n°{previousReportNumber}
+                      </Badge>
+                    )}
+                    {obsStatusInfo && (
+                      <Badge
+                        variant="secondary"
+                        className={`text-[10px] ${obsStatusInfo.color}`}
+                      >
+                        {obsStatusInfo.label}
+                      </Badge>
+                    )}
+                    {obs.category && (
+                      <span className="text-[10px] text-muted-foreground">
+                        {
+                          OBSERVATION_CATEGORIES.find(
+                            (c) => c.value === obs.category
+                          )?.label
+                        }
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-sm whitespace-pre-wrap">
+                    {obs.description}
+                  </p>
                 </div>
-                <p className="text-sm whitespace-pre-wrap">
-                  {obs.description}
-                </p>
-                <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                  {obs.dueDate && (
-                    <span
-                      className={
-                        new Date(obs.dueDate) < new Date() &&
-                        obs.status !== "fait"
-                          ? "text-red-600 font-medium"
-                          : ""
-                      }
-                    >
-                      Pour le{" "}
-                      {new Date(obs.dueDate).toLocaleDateString("fr-FR")}
-                    </span>
-                  )}
-                  {obs.doneDate && (
-                    <span className="text-green-600">
-                      Fait le{" "}
-                      {new Date(obs.doneDate).toLocaleDateString("fr-FR")}
-                    </span>
-                  )}
-                  <ObservationPhotos observationId={obs.id} />
+                <div className="flex items-center gap-1 shrink-0">
+                  <select
+                    value={obs.status}
+                    onChange={(e) =>
+                      updateObservationStatus(obs.id, e.target.value)
+                    }
+                    className="text-xs border rounded px-1 py-0.5 bg-background"
+                  >
+                    {OBSERVATION_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                    onClick={() => deleteObservation(obs.id)}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <select
-                  value={obs.status}
-                  onChange={(e) =>
-                    updateObservationStatus(obs.id, e.target.value)
-                  }
-                  className="text-xs border rounded px-1 py-0.5 bg-background"
-                >
-                  {OBSERVATION_STATUSES.map((s) => (
-                    <option key={s.value} value={s.value}>
-                      {s.label}
-                    </option>
-                  ))}
-                </select>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 text-muted-foreground hover:text-red-500"
-                  onClick={() => deleteObservation(obs.id)}
-                >
-                  <Trash2 className="h-3 w-3" />
-                </Button>
+              <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                {obs.dueDate && (
+                  <span
+                    className={
+                      new Date(obs.dueDate) < new Date() &&
+                      obs.status !== "fait"
+                        ? "text-red-600 font-medium"
+                        : ""
+                    }
+                  >
+                    Pour le{" "}
+                    {new Date(obs.dueDate).toLocaleDateString("fr-FR")}
+                  </span>
+                )}
+                {obs.doneDate && (
+                  <span className="text-green-600">
+                    Fait le{" "}
+                    {new Date(obs.doneDate).toLocaleDateString("fr-FR")}
+                  </span>
+                )}
+                <ObservationPhotos observationId={obs.id} />
               </div>
             </div>
           </div>
