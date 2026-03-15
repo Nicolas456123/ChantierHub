@@ -46,16 +46,24 @@ export function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex h-16 items-center gap-4 border-b bg-white px-4 md:px-6">
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b bg-white px-3 md:h-16 md:gap-4 md:px-6">
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden shrink-0"
           onClick={() => setMobileNavOpen(true)}
         >
           <Menu className="h-5 w-5" />
         </Button>
 
+        {/* Mobile: project name truncated */}
+        {projectName && (
+          <span className="md:hidden text-sm font-medium text-orange-600 truncate max-w-[140px]">
+            {projectName}
+          </span>
+        )}
+
+        {/* Desktop: project name button */}
         {projectName && (
           <Button
             variant="ghost"
@@ -71,7 +79,7 @@ export function Header() {
 
         <div className="flex-1" />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3 shrink-0">
           {isAdmin && (
             <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-orange-100 text-orange-700">
               <ShieldCheck className="h-3 w-3" />
@@ -80,9 +88,9 @@ export function Header() {
           )}
           <Link href="/profil" className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors">
             <User className="h-4 w-4" />
-            <span className="font-medium">{userName}</span>
+            <span className="hidden sm:inline font-medium">{userName}</span>
           </Link>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Se d&#233;connecter">
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Se déconnecter">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>

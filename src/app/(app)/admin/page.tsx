@@ -261,124 +261,123 @@ function UsersTab({
 
         return (
           <Card key={user.id}>
-            <CardContent className="p-4">
-              <div className="flex items-start justify-between gap-4">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-medium">
-                      {user.firstName} {user.lastName}
-                    </h3>
-                    {user.isGlobalAdmin && (
-                      <Badge className="bg-orange-100 text-orange-800 text-xs">
-                        <ShieldCheck className="h-3 w-3 mr-1" />
-                        Admin
-                      </Badge>
-                    )}
-                    {isMe && (
-                      <Badge variant="outline" className="text-xs">
-                        Vous
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground">{user.email}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Inscrit le{" "}
-                    {new Date(user.createdAt).toLocaleDateString("fr-FR")}
-                  </p>
-
-                  {/* Projects */}
-                  <div className="mt-3">
-                    <p className="text-xs font-medium text-muted-foreground mb-1">
-                      Projets ({user.userProjects.length})
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {user.userProjects.map((up) => (
-                        <Badge
-                          key={up.id}
-                          variant="secondary"
-                          className="text-xs flex items-center gap-1"
-                        >
-                          {up.project.name}
-                          <span className="text-muted-foreground">
-                            ({up.role})
-                          </span>
-                          <button
-                            onClick={() =>
-                              onRevokeAccess(user.id, up.project.id)
-                            }
-                            className="ml-1 hover:text-red-600"
-                            title="Révoquer l'accès"
-                          >
-                            <UserMinus className="h-3 w-3" />
-                          </button>
-                        </Badge>
-                      ))}
-                      {availableProjects.length > 0 && (
-                        addingProjectFor === user.id ? (
-                          <Select
-                            onValueChange={(v: string | null) => {
-                              if (v) onGrantAccess(user.id, v);
-                              setAddingProjectFor(null);
-                            }}
-                          >
-                            <SelectTrigger className="h-6 w-40 text-xs">
-                              <SelectValue placeholder="Choisir un projet" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {availableProjects.map((p) => (
-                                <SelectItem key={p.id} value={p.id}>
-                                  {p.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-6 text-xs"
-                            onClick={() => setAddingProjectFor(user.id)}
-                          >
-                            <UserPlus className="h-3 w-3 mr-1" />
-                            Ajouter
-                          </Button>
-                        )
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant={user.isGlobalAdmin ? "outline" : "default"}
-                    size="sm"
-                    onClick={() => onToggleAdmin(user.id, user.isGlobalAdmin)}
-                    disabled={isMe}
-                    title={
-                      user.isGlobalAdmin
-                        ? "Retirer les droits admin"
-                        : "Accorder les droits admin"
-                    }
-                  >
-                    <ShieldCheck className="h-4 w-4 mr-1" />
-                    {user.isGlobalAdmin ? "Retirer admin" : "Rendre admin"}
-                  </Button>
-                  {!isMe && (
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() =>
-                        onDeleteUser(
-                          user.id,
-                          `${user.firstName} ${user.lastName}`
-                        )
-                      }
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+            <CardContent className="p-4 space-y-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-medium">
+                    {user.firstName} {user.lastName}
+                  </h3>
+                  {user.isGlobalAdmin && (
+                    <Badge className="bg-orange-100 text-orange-800 text-xs">
+                      <ShieldCheck className="h-3 w-3 mr-1" />
+                      Admin
+                    </Badge>
+                  )}
+                  {isMe && (
+                    <Badge variant="outline" className="text-xs">
+                      Vous
+                    </Badge>
                   )}
                 </div>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Inscrit le{" "}
+                  {new Date(user.createdAt).toLocaleDateString("fr-FR")}
+                </p>
+              </div>
+
+              {/* Projects */}
+              <div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Projets ({user.userProjects.length})
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {user.userProjects.map((up) => (
+                    <Badge
+                      key={up.id}
+                      variant="secondary"
+                      className="text-xs flex items-center gap-1"
+                    >
+                      {up.project.name}
+                      <span className="text-muted-foreground">
+                        ({up.role})
+                      </span>
+                      <button
+                        onClick={() =>
+                          onRevokeAccess(user.id, up.project.id)
+                        }
+                        className="ml-1 hover:text-red-600"
+                        title="Révoquer l'accès"
+                      >
+                        <UserMinus className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                  {availableProjects.length > 0 && (
+                    addingProjectFor === user.id ? (
+                      <Select
+                        onValueChange={(v: string | null) => {
+                          if (v) onGrantAccess(user.id, v);
+                          setAddingProjectFor(null);
+                        }}
+                      >
+                        <SelectTrigger className="h-6 w-40 text-xs">
+                          <SelectValue placeholder="Choisir un projet" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableProjects.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-xs"
+                        onClick={() => setAddingProjectFor(user.id)}
+                      >
+                        <UserPlus className="h-3 w-3 mr-1" />
+                        Ajouter
+                      </Button>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-1 border-t">
+                <Button
+                  variant={user.isGlobalAdmin ? "outline" : "default"}
+                  size="sm"
+                  className="flex-1 sm:flex-none"
+                  onClick={() => onToggleAdmin(user.id, user.isGlobalAdmin)}
+                  disabled={isMe}
+                  title={
+                    user.isGlobalAdmin
+                      ? "Retirer les droits admin"
+                      : "Accorder les droits admin"
+                  }
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1" />
+                  {user.isGlobalAdmin ? "Retirer admin" : "Rendre admin"}
+                </Button>
+                {!isMe && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() =>
+                      onDeleteUser(
+                        user.id,
+                        `${user.firstName} ${user.lastName}`
+                      )
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -400,26 +399,26 @@ function ProjectsTab({
     <div className="space-y-4">
       {projects.map((project) => (
         <Card key={project.id}>
-          <CardContent className="p-4">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0 flex-1">
-                <h3 className="font-medium">{project.name}</h3>
-                {project.description && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    {project.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                  <span>
-                    {project._count.userProjects} membre
-                    {project._count.userProjects !== 1 ? "s" : ""}
-                  </span>
-                  <span>
-                    Créé le{" "}
-                    {new Date(project.createdAt).toLocaleDateString("fr-FR")}
-                  </span>
-                </div>
+          <CardContent className="p-4 space-y-3">
+            <div className="min-w-0">
+              <h3 className="font-medium">{project.name}</h3>
+              {project.description && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {project.description}
+                </p>
+              )}
+              <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                <span>
+                  {project._count.userProjects} membre
+                  {project._count.userProjects !== 1 ? "s" : ""}
+                </span>
+                <span>
+                  Créé le{" "}
+                  {new Date(project.createdAt).toLocaleDateString("fr-FR")}
+                </span>
               </div>
+            </div>
+            <div className="flex pt-1 border-t">
               <Button
                 variant="destructive"
                 size="sm"

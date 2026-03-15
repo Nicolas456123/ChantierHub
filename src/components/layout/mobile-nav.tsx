@@ -24,6 +24,7 @@ import {
   ShieldCheck,
   LogOut,
   FolderSync,
+  User,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -68,13 +69,15 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
-      <SheetContent side="left" className="w-64 p-0">
-        <SheetHeader className="flex h-16 flex-row items-center gap-2 px-6 border-b">
+      <SheetContent side="left" className="w-64 p-0 flex flex-col gap-0">
+        <SheetHeader className="flex h-14 shrink-0 flex-row items-center gap-2 px-6 border-b">
           <HardHat className="h-6 w-6 text-orange-600" />
           <SheetTitle className="text-lg font-semibold">ChantierHub</SheetTitle>
         </SheetHeader>
-        <nav className="py-4 px-3">
-          <div className="space-y-6">
+
+        {/* Scrollable nav area */}
+        <nav className="flex-1 overflow-y-auto py-3 px-3">
+          <div className="space-y-4">
             {NAV_GROUPS.map((group, gi) => (
               <div key={gi}>
                 {group.label && (
@@ -132,19 +135,37 @@ export function MobileNav({ open, onClose }: MobileNavProps) {
           </div>
         </nav>
 
-        {/* User actions at bottom */}
-        <div className="absolute bottom-0 left-0 right-0 border-t bg-white p-3 space-y-2">
+        {/* Fixed bottom section */}
+        <div className="shrink-0 border-t bg-white p-3 space-y-1">
           {userName && (
-            <p className="text-xs text-muted-foreground px-3 mb-2 truncate">{userName}</p>
+            <Link
+              href="/profil"
+              onClick={onClose}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                pathname === "/profil"
+                  ? "bg-orange-50 text-orange-700 font-medium"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              )}
+            >
+              <User className="h-4 w-4" />
+              <span className="truncate">{userName}</span>
+            </Link>
           )}
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-sm" onClick={handleSwitchProject}>
+          <button
+            onClick={handleSwitchProject}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+          >
             <FolderSync className="h-4 w-4" />
             Changer de projet
-          </Button>
-          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleLogout}>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
+          >
             <LogOut className="h-4 w-4" />
             Se déconnecter
-          </Button>
+          </button>
         </div>
       </SheetContent>
     </Sheet>
