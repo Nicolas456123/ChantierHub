@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserId, PROJECT_COOKIE_NAME } from "@/lib/auth";
+import { getUserId, PROJECT_COOKIE_NAME, requireGlobalAdmin } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
+    await requireGlobalAdmin();
     const userId = await getUserId();
     const body = await request.json();
     const { name, accessCode } = body;
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    if (error instanceof Error && error.message === "Accès refusé") {
+      return NextResponse.json({ error: "Seuls les administrateurs peuvent créer des projets" }, { status: 403 });
+    }
     if (error instanceof Error && error.message === "Non authentifié") {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }

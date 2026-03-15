@@ -58,5 +58,37 @@ export async function createSession(userId: string): Promise<string> {
   return session.id;
 }
 
+export async function isGlobalAdmin(): Promise<boolean> {
+  const session = await getSession();
+  if (!session) return false;
+  return (session.user as { isGlobalAdmin?: boolean }).isGlobalAdmin === true;
+}
+
+export async function requireGlobalAdmin(): Promise<void> {
+  const admin = await isGlobalAdmin();
+  if (!admin) throw new Error("Accès refusé");
+}
+
+export async function getUserRole(): Promise<{
+  isGlobalAdmin: boolean;
+  projectRole: string | null;
+}> {
+  const session = await getSession();
+  if (!session) return { isGlobalAdmin: false, projectRole: null };
+  const cookieStore = await cookies();
+  const projectId = cookieStore.get(PROJECT_COOKIE)?.value;
+  let projectRole: string | null = null;
+  if (projectId) {
+    const up = await prisma.userProject.findUnique({
+      where: { userId_projectId: { userId: session.user.id, projectId } },
+    });
+    projectRole = up?.role ?? null;
+  }
+  return {
+    isGlobalAdmin: (session.user as { isGlobalAdmin?: boolean }).isGlobalAdmin === true,
+    projectRole,
+  };
+}
+
 export const SESSION_COOKIE_NAME = SESSION_COOKIE;
 export const PROJECT_COOKIE_NAME = PROJECT_COOKIE;

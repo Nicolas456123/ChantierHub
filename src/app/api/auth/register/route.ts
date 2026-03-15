@@ -22,12 +22,17 @@ export async function POST(request: NextRequest) {
 
     const hashedPassword = await bcryptjs.hash(password, 10);
 
+    // First user ever registered becomes global admin automatically
+    const userCount = await prisma.user.count();
+    const isFirstUser = userCount === 0;
+
     const user = await prisma.user.create({
       data: {
         firstName,
         lastName,
         email,
         password: hashedPassword,
+        isGlobalAdmin: isFirstUser,
       },
     });
 

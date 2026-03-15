@@ -14,6 +14,7 @@ export async function GET() {
       firstName: session.user.firstName,
       lastName: session.user.lastName,
       email: session.user.email,
+      isGlobalAdmin: (session.user as { isGlobalAdmin?: boolean }).isGlobalAdmin ?? false,
     });
   } catch {
     return NextResponse.json({ error: "Erreur serveur" }, { status: 500 });

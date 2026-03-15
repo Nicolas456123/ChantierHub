@@ -28,6 +28,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Routes that need auth but bypass project requirement
+  if (
+    pathname.startsWith("/api/admin") ||
+    pathname.startsWith("/api/feedback") ||
+    pathname.startsWith("/api/auth/profile") ||
+    pathname === "/profil"
+  ) {
+    return NextResponse.next();
+  }
+
   // No project selected → go to project selection
   if (!projectCookie) {
     return NextResponse.redirect(new URL("/projects", request.url));

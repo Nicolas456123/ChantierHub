@@ -43,6 +43,7 @@ export async function POST(request: NextRequest) {
     const name = formData.get("name") as string;
     const description = formData.get("description") as string | null;
     const category = formData.get("category") as string;
+    const folderId = formData.get("folderId") as string | null;
 
     if (!file) {
       return NextResponse.json(
@@ -89,6 +90,7 @@ export async function POST(request: NextRequest) {
         fileSize: file.size,
         mimeType: file.type || "application/octet-stream",
         author,
+        folderId: folderId || null,
         projectId,
       },
     });

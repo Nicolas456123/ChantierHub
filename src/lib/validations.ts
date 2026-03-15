@@ -122,3 +122,45 @@ export const accessCodeSchema = z.object({
   currentCode: z.string().min(1),
   newCode: z.string().min(4, "Le code doit contenir au moins 4 caractères").max(20),
 });
+
+export const profileSchema = z.object({
+  firstName: z.string().min(1, "Le prénom est requis").max(50),
+  lastName: z.string().min(1, "Le nom est requis").max(50),
+  email: z.email("Email invalide"),
+});
+
+export const passwordChangeSchema = z.object({
+  currentPassword: z.string().min(1, "Le mot de passe actuel est requis"),
+  newPassword: z.string().min(6, "Le nouveau mot de passe doit contenir au moins 6 caractères"),
+});
+
+export const appointmentSchema = z.object({
+  title: z.string().min(1, "Le titre est requis").max(200),
+  description: z.string().optional(),
+  date: z.string().min(1, "La date est requise"),
+  endDate: z.string().optional().nullable(),
+  location: z.string().max(300).optional(),
+  attendees: z.string().optional().default("[]"),
+  color: z.string().optional().default("#f97316"),
+});
+
+export const feedbackReplySchema = z.object({
+  content: z.string().min(1, "La réponse ne peut pas être vide").max(5000),
+});
+
+export const documentFolderSchema = z.object({
+  name: z.string().min(1, "Le nom est requis").max(100),
+  parentId: z.string().optional().nullable(),
+});
+
+export const feedbackSchema = z.object({
+  type: z.enum(["bug", "suggestion", "autre"]),
+  title: z.string().min(1, "Le titre est requis").max(200),
+  description: z.string().min(1, "La description est requise").max(5000),
+  priority: z.enum(["basse", "normale", "haute", "urgente"]).default("normale"),
+});
+
+export const feedbackUpdateSchema = z.object({
+  status: z.enum(["nouveau", "en_cours", "resolu", "ferme"]).optional(),
+  priority: z.enum(["basse", "normale", "haute", "urgente"]).optional(),
+});

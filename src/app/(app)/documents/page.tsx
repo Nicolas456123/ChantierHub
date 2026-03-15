@@ -7,15 +7,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatDate, formatFileSize } from "@/lib/format";
 import { DOCUMENT_CATEGORIES } from "@/lib/constants";
-import { Plus, FolderOpen, Download, Eye, MessageSquare } from "lucide-react";
+import { Plus, FolderOpen, Download, Eye, MessageSquare, Folder, ChevronRight } from "lucide-react";
 import { DeleteDocumentButton } from "./delete-document-button";
 import { ListFilters } from "@/components/list-filters";
 import { ExportCsvButton } from "@/components/export-csv-button";
+import { FolderManager } from "./folder-manager";
 
 export const dynamic = "force-dynamic";
 
 interface Props {
-  searchParams: Promise<{ q?: string; category?: string }>;
+  searchParams: Promise<{ q?: string; category?: string; folder?: string }>;
 }
 
 export default async function DocumentsPage({ searchParams }: Props) {
@@ -23,11 +24,34 @@ export default async function DocumentsPage({ searchParams }: Props) {
   const projectId = await getCurrentProjectId();
   const search = params.q?.trim().toLowerCase() ?? "";
   const categoryFilter = params.category ?? "";
+  const folderId = params.folder ?? "";
+
+  const folders = await prisma.documentFolder.findMany({
+    where: { projectId },
+    orderBy: { name: "asc" },
+  });
+
+  // Get current folder info
+  const currentFolder = folderId ? folders.find((f) => f.id === folderId) : null;
+  const subFolders = folders.filter((f) =>
+    folderId ? f.parentId === folderId : !f.parentId
+  );
+
+  // Get breadcrumb path
+  const breadcrumb: { id: string; name: string }[] = [];
+  if (currentFolder) {
+    let f: typeof currentFolder | undefined = currentFolder;
+    while (f) {
+      breadcrumb.unshift({ id: f.id, name: f.name });
+      f = f.parentId ? folders.find((x) => x.id === f!.parentId) : undefined;
+    }
+  }
 
   const documents = await prisma.document.findMany({
     where: {
       projectId,
       ...(categoryFilter ? { category: categoryFilter } : {}),
+      ...(folderId ? { folderId } : search ? {} : { folderId: null }),
     },
     orderBy: { createdAt: "desc" },
   });
@@ -65,20 +89,74 @@ export default async function DocumentsPage({ searchParams }: Props) {
     count: allDocs.filter((d) => d.category === cat.value).length,
   })).filter((c) => c.count > 0);
 
+  // Count docs in each folder
+  const folderDocCounts = await prisma.document.groupBy({
+    by: ["folderId"],
+    where: { projectId, folderId: { not: null } },
+    _count: true,
+  });
+  const folderCountMap = new Map(
+    folderDocCounts.map((c) => [c.folderId, c._count])
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Documents"
         description="Gestion des documents du chantier"
         action={
-          <Link href="/documents/nouveau">
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Ajouter un document
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <FolderManager currentFolderId={folderId || null} />
+            <Link href={`/documents/nouveau${folderId ? `?folder=${folderId}` : ""}`}>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Ajouter un document
+              </Button>
+            </Link>
+          </div>
         }
       />
+
+      {/* Breadcrumb */}
+      {breadcrumb.length > 0 && (
+        <div className="flex items-center gap-1 text-sm">
+          <Link href="/documents" className="text-orange-600 hover:underline">
+            Documents
+          </Link>
+          {breadcrumb.map((crumb) => (
+            <span key={crumb.id} className="flex items-center gap-1">
+              <ChevronRight className="h-3 w-3 text-muted-foreground" />
+              <Link
+                href={`/documents?folder=${crumb.id}`}
+                className="text-orange-600 hover:underline"
+              >
+                {crumb.name}
+              </Link>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Sub-folders */}
+      {subFolders.length > 0 && !search && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {subFolders.map((folder) => (
+            <Link key={folder.id} href={`/documents?folder=${folder.id}`}>
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
+                <CardContent className="p-4 flex items-center gap-3">
+                  <Folder className="h-5 w-5 text-orange-500 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-sm truncate">{folder.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {folderCountMap.get(folder.id) ?? 0} document(s)
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+      )}
 
       <ListFilters
         searchPlaceholder="Rechercher un document…"
@@ -99,7 +177,7 @@ export default async function DocumentsPage({ searchParams }: Props) {
                 : "Commencez par ajouter votre premier document."}
             </p>
             {!search && !categoryFilter && (
-              <Link href="/documents/nouveau">
+              <Link href={`/documents/nouveau${folderId ? `?folder=${folderId}` : ""}`}>
                 <Button>
                   <Plus className="h-4 w-4 mr-2" />
                   Ajouter un document

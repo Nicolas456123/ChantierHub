@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
-import { getCurrentProjectId } from "@/lib/auth";
+import { getCurrentProjectId, isGlobalAdmin } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,12 +20,14 @@ import {
   AlertTriangle,
   Clock,
   TrendingUp,
+  Bug,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
   const projectId = await getCurrentProjectId();
+  const admin = await isGlobalAdmin();
 
   const [
     totalEvents,
@@ -88,6 +90,10 @@ export default async function DashboardPage() {
     }),
   ]);
 
+  // Feedback stats (admin only)
+  const newFeedbacks = admin ? await prisma.feedback.count({ where: { status: "nouveau" } }) : 0;
+  const totalFeedbacks = admin ? await prisma.feedback.count() : 0;
+
   // Also fetch constraint deadlines for the planning section
   const constraintDeadlines = await prisma.constraint.findMany({
     where: {
@@ -144,6 +150,15 @@ export default async function DashboardPage() {
       href: "/contraintes",
       color: violatedConstraints > 0 ? "text-red-600" : "text-indigo-600",
     },
+    ...(admin ? [{
+      label: "Retours",
+      value: newFeedbacks > 0
+        ? `${newFeedbacks} nouveau${newFeedbacks > 1 ? "x" : ""} / ${totalFeedbacks}`
+        : `${totalFeedbacks}`,
+      icon: Bug,
+      href: "/retours",
+      color: newFeedbacks > 0 ? "text-red-600" : "text-gray-600",
+    }] : []),
   ];
 
   return (
@@ -170,7 +185,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className={`grid gap-4 sm:grid-cols-2 ${admin ? "lg:grid-cols-3 xl:grid-cols-6" : "lg:grid-cols-5"}`}>
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href}>
             <Card className="hover:shadow-md transition-shadow">
@@ -187,7 +202,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Alerts */}
-      {(violatedConstraints > 0 || overdueTasks > 0 || pendingRequests > 0) && (
+      {(violatedConstraints > 0 || overdueTasks > 0 || pendingRequests > 0 || (admin && newFeedbacks > 0)) && (
         <div className="space-y-2">
           {violatedConstraints > 0 && (
             <Card className="border-red-200 bg-red-50">
@@ -228,6 +243,21 @@ export default async function DashboardPage() {
                 </p>
                 <Link href="/demandes?status=en_attente">
                   <Button size="sm" variant="outline" className="border-yellow-300 text-yellow-700 hover:bg-yellow-100">
+                    Voir
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+          {admin && newFeedbacks > 0 && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="flex items-center gap-3 py-3">
+                <Bug className="h-5 w-5 text-blue-600 shrink-0" />
+                <p className="text-sm font-medium text-blue-800 flex-1">
+                  {newFeedbacks} nouveau{newFeedbacks > 1 ? "x" : ""} retour{newFeedbacks > 1 ? "s" : ""} à traiter
+                </p>
+                <Link href="/retours?status=nouveau">
+                  <Button size="sm" variant="outline" className="border-blue-300 text-blue-700 hover:bg-blue-100">
                     Voir
                   </Button>
                 </Link>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -13,9 +14,12 @@ import {
   Shield,
   ClipboardList,
   CalendarRange,
+  CalendarDays,
   Clock,
   Settings,
   HardHat,
+  MessageSquarePlus,
+  ShieldCheck,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -27,12 +31,23 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Shield,
   ClipboardList,
   CalendarRange,
+  CalendarDays,
   Clock,
   Settings,
+  MessageSquarePlus,
+  ShieldCheck,
 };
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((data) => setIsAdmin(data.isGlobalAdmin === true))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r bg-white">
@@ -76,6 +91,28 @@ export function Sidebar() {
               </ul>
             </div>
           ))}
+
+          {/* Admin link — only visible to global admins */}
+          {isAdmin && (
+            <div>
+              <ul className="space-y-0.5">
+                <li>
+                  <Link
+                    href="/admin"
+                    className={cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                      pathname.startsWith("/admin")
+                        ? "bg-orange-50 text-orange-700 font-medium"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    )}
+                  >
+                    <ShieldCheck className="h-4 w-4" />
+                    Administration
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          )}
         </div>
       </nav>
     </aside>

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { LogOut, Menu, User, FolderOpen } from "lucide-react";
+import { LogOut, Menu, User, FolderOpen, ShieldCheck } from "lucide-react";
 import { MobileNav } from "./mobile-nav";
 import { useState, useEffect } from "react";
 
@@ -10,6 +11,7 @@ export function Header() {
   const router = useRouter();
   const [userName, setUserName] = useState("");
   const [projectName, setProjectName] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   useEffect(() => {
@@ -17,6 +19,7 @@ export function Header() {
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data?.firstName) setUserName(`${data.firstName} ${data.lastName}`);
+        if (data?.isGlobalAdmin) setIsAdmin(true);
       })
       .catch(() => {});
 
@@ -69,10 +72,16 @@ export function Header() {
         <div className="flex-1" />
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          {isAdmin && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full bg-orange-100 text-orange-700">
+              <ShieldCheck className="h-3 w-3" />
+              Admin
+            </span>
+          )}
+          <Link href="/profil" className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors">
             <User className="h-4 w-4" />
             <span className="font-medium">{userName}</span>
-          </div>
+          </Link>
           <Button variant="ghost" size="icon" onClick={handleLogout} title="Se d&#233;connecter">
             <LogOut className="h-4 w-4" />
           </Button>

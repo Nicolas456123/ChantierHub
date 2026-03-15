@@ -138,6 +138,30 @@ export const OBSERVATION_CATEGORIES = [
   { value: "visite", label: "Visite" },
 ] as const;
 
+export const FEEDBACK_TYPES = [
+  { value: "bug", label: "Bug" },
+  { value: "suggestion", label: "Suggestion" },
+  { value: "autre", label: "Autre" },
+] as const;
+
+export const FEEDBACK_STATUSES = [
+  { value: "nouveau", label: "Nouveau", color: "bg-blue-100 text-blue-800" },
+  { value: "en_cours", label: "En cours", color: "bg-yellow-100 text-yellow-800" },
+  { value: "resolu", label: "Résolu", color: "bg-green-100 text-green-800" },
+  { value: "ferme", label: "Fermé", color: "bg-gray-100 text-gray-800" },
+] as const;
+
+export const APPOINTMENT_COLORS = [
+  { value: "#f97316", label: "Orange" },
+  { value: "#3b82f6", label: "Bleu" },
+  { value: "#22c55e", label: "Vert" },
+  { value: "#ef4444", label: "Rouge" },
+  { value: "#a855f7", label: "Violet" },
+  { value: "#eab308", label: "Jaune" },
+  { value: "#06b6d4", label: "Cyan" },
+  { value: "#ec4899", label: "Rose" },
+] as const;
+
 export const MEETING_REPORT_STATUSES = [
   { value: "brouillon", label: "Brouillon", color: "bg-gray-100 text-gray-800" },
   { value: "valide", label: "Validé", color: "bg-green-100 text-green-800" },
@@ -168,6 +192,7 @@ export const NAV_GROUPS = [
     label: "Suivi",
     items: [
       { href: "/journal", label: "Journal", icon: "BookOpen" },
+      { href: "/agenda", label: "Agenda", icon: "CalendarDays" },
       { href: "/planning", label: "Planning", icon: "CalendarRange" },
       { href: "/historique", label: "Historique", icon: "Clock" },
     ],
@@ -190,6 +215,7 @@ export const NAV_GROUPS = [
   {
     label: null,
     items: [
+      { href: "/retours", label: "Retours & Bugs", icon: "MessageSquarePlus" },
       { href: "/parametres", label: "Paramètres", icon: "Settings" },
     ],
   },

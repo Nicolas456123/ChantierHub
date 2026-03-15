@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,15 +19,39 @@ import { DOCUMENT_CATEGORIES } from "@/lib/constants";
 import { Upload, FileIcon, X } from "lucide-react";
 import { toast } from "sonner";
 
-export default function NouveauDocumentPage() {
+interface FolderItem {
+  id: string;
+  name: string;
+  parentId: string | null;
+}
+
+export default function NouveauDocumentPageWrapper() {
+  return (
+    <Suspense>
+      <NouveauDocumentPage />
+    </Suspense>
+  );
+}
+
+function NouveauDocumentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
+  const [folderId, setFolderId] = useState(searchParams.get("folder") ?? "");
+  const [folders, setFolders] = useState<FolderItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/documents/folders")
+      .then((r) => r.ok ? r.json() : [])
+      .then(setFolders)
+      .catch(() => {});
+  }, []);
 
   const handleFile = useCallback((selectedFile: File) => {
     setFile(selectedFile);
@@ -81,6 +105,7 @@ export default function NouveauDocumentPage() {
       formData.append("name", name.trim());
       formData.append("description", description.trim());
       formData.append("category", category);
+      if (folderId) formData.append("folderId", folderId);
 
       const res = await fetch("/api/documents", {
         method: "POST",
@@ -214,6 +239,29 @@ export default function NouveauDocumentPage() {
                 </SelectContent>
               </Select>
             </div>
+
+            {folders.length > 0 && (
+              <div>
+                <Label htmlFor="folder" className="mb-2 block">
+                  Dossier (optionnel)
+                </Label>
+                <Select value={folderId} onValueChange={(v) => setFolderId(v === "__none__" ? "" : (v ?? ""))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Racine (aucun dossier)">
+                      {folderId ? folders.find((f) => f.id === folderId)?.name : "Racine (aucun dossier)"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none__">Racine (aucun dossier)</SelectItem>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        {folder.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex gap-3">
               <Button type="submit" disabled={loading}>

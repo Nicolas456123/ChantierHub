@@ -19,6 +19,7 @@ export default function ProjectsPage() {
   const router = useRouter();
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [mode, setMode] = useState<"list" | "join" | "create">("list");
   const [accessCode, setAccessCode] = useState("");
   const [projectName, setProjectName] = useState("");
@@ -27,9 +28,14 @@ export default function ProjectsPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    fetch("/api/projects")
-      .then((res) => res.ok ? res.json() : [])
-      .then(setProjects)
+    Promise.all([
+      fetch("/api/projects").then((res) => res.ok ? res.json() : []),
+      fetch("/api/auth/me").then((res) => res.ok ? res.json() : {}),
+    ])
+      .then(([projectsData, meData]: [ProjectItem[], { isGlobalAdmin?: boolean }]) => {
+        setProjects(projectsData);
+        setIsAdmin(meData.isGlobalAdmin === true);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -159,16 +165,23 @@ export default function ProjectsPage() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className={`grid gap-3 ${isAdmin ? "grid-cols-2" : "grid-cols-1"}`}>
               <Button variant="outline" className="w-full" onClick={() => { setMode("join"); setError(""); }}>
                 <LogIn className="h-4 w-4 mr-2" />
-                Rejoindre
+                Rejoindre un projet
               </Button>
-              <Button className="w-full" onClick={() => { setMode("create"); setError(""); }}>
-                <Plus className="h-4 w-4 mr-2" />
-                Créer un projet
-              </Button>
+              {isAdmin && (
+                <Button className="w-full" onClick={() => { setMode("create"); setError(""); }}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Créer un projet
+                </Button>
+              )}
             </div>
+            {!isAdmin && projects.length === 0 && (
+              <p className="text-xs text-center text-muted-foreground">
+                Demandez le code d&apos;accès à un administrateur pour rejoindre un projet.
+              </p>
+            )}
           </>
         )}
 

@@ -7,15 +7,17 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  firstName    String
-  lastName     String
-  email        String        @unique
-  password     String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  sessions     Session[]
-  userProjects UserProject[]
+  id             String        @id @default(cuid())
+  firstName      String
+  lastName       String
+  email          String        @unique
+  password       String
+  isGlobalAdmin  Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  sessions       Session[]
+  userProjects   UserProject[]
+  feedbacks      Feedback[]
 }
 
 model Session {
@@ -49,6 +51,8 @@ model Project {
   companies        Company[]
   meetingReports   MeetingReport[]
   meetingTemplates MeetingTemplate[]
+  appointments     Appointment[]
+  documentFolders  DocumentFolder[]
 }
 
 model UserProject {
@@ -126,6 +130,7 @@ model Document {
   fileSize    Int
   mimeType    String
   author      String
+  folderId    String?
   projectId   String
   project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
@@ -133,6 +138,7 @@ model Document {
 
   @@index([category])
   @@index([projectId])
+  @@index([folderId])
 }
 
 model Task {
@@ -316,6 +322,66 @@ model Observation {
   @@index([meetingReportId])
   @@index([companyId])
   @@index([status])
+}
+
+model Feedback {
+  id          String           @id @default(cuid())
+  type        String
+  title       String
+  description String
+  status      String           @default("nouveau")
+  priority    String           @default("normale")
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId   String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  replies     FeedbackReply[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model FeedbackReply {
+  id         String   @id @default(cuid())
+  content    String
+  author     String
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@index([feedbackId])
+}
+
+model Appointment {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  date        DateTime
+  endDate     DateTime?
+  location    String?
+  attendees   String    @default("[]")
+  color       String    @default("#f97316")
+  author      String
+  projectId   String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([date])
+}
+
+model DocumentFolder {
+  id        String   @id @default(cuid())
+  name      String
+  parentId  String?
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([parentId])
 }
 
 model Photo {
